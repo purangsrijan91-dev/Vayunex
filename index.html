@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aegis-Cyclone | Command Operations Center</title>
+  
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0B1120;
+      --card-bg: #1E293B;
+      --border-color: #334155;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --accent-cyan: #06B6D4;
+      --accent-blue: #3B82F6;
+      --status-red: #EF4444;
+      --status-orange: #F59E0B;
+      --status-green: #10B981;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+      padding: 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 16px;
+    }
+    .brand-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-red { background: #7F1D1D; color: #FECACA; border: 1px solid #DC2626; }
+    .badge-orange { background: #78350F; color: #FEF3C7; border: 1px solid #D97706; }
+    .badge-green { background: #064E3B; color: #A7F3D0; border: 1px solid #059669; }
+
+    /* KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .kpi-title {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .kpi-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+
+    /* Main Layout */
+    .ops-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr 380px;
+      gap: 16px;
+    }
+    @media (max-width: 1200px) {
+      .ops-layout { grid-template-columns: 1fr; }
+    }
+
+    .pane {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    /* Sliders */
+    .control-group {
+      margin-bottom: 14px;
+    }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-cyan);
+    }
+    select, button {
+      width: 100%;
+      background: #0F172A;
+      border: 1px solid var(--border-color);
+      color: #FFF;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button.btn-primary {
+      background: #0F766E;
+      border: none;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    button.btn-primary:hover {
+      background: #0D9488;
+    }
+
+    /* Map */
+    #map {
+      height: 480px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Parametric Banner */
+    .parametric-box {
+      background: linear-gradient(90deg, #1E1B4B 0%, #172554 100%);
+      border: 1px solid #6366F1;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+
+    /* Tabs */
+    .tab-buttons {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .tab-btn {
+      padding: 6px 10px;
+      background: #0F172A;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+    }
+    .tab-content {
+      background: #0F172A;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      min-height: 90px;
+      margin-bottom: 8px;
+    }
+
+    /* Accordion Asset Items */
+    .asset-item {
+      background: #0F172A;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+    .asset-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+    }
+    .asset-desc {
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-size: 0.8rem;
+    }
+
+    /* Field Mode Overlay */
+    #field-mode-view {
+      display: none;
+      background: #020617;
+      color: #22C55E;
+      font-family: monospace;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #166534;
+      white-space: pre-wrap;
+      font-size: 0.85rem;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-title">
+      <span>🌪️</span>
+      <div>
+        <span>Aegis-Cyclone</span>
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 400; margin-left: 8px;">
+          Anticipatory Exposure &amp; Vulnerability Forecaster
+        </span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <span id="posture-badge" class="badge badge-red">[POSTURE: RED]</span>
+      <a href="https://github.com/purangsrijan91-dev/Vayunex" target="_blank" style="color: var(--accent-cyan); text-decoration: none; font-size: 0.85rem; font-weight: 600;">
+        GitHub Repository ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- KPI Banner -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-title">Threat Posture</div>
+      <div id="kpi-posture" class="kpi-val" style="color: var(--status-red);">RED (CRITICAL)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Total Water Surge (TWSE)</div>
+      <div id="kpi-twse" class="kpi-val" style="color: var(--accent-cyan);">3.04 m</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Max Winds / Category</div>
+      <div id="kpi-wind" class="kpi-val" style="color: var(--status-orange);">195 km/h</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Central Pressure</div>
+      <div id="kpi-press" class="kpi-val" style="color: #A78BFA;">940 hPa</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">Parametric Payout Tier</div>
+      <div id="kpi-payout" class="kpi-val" style="color: #38BDF8;">100% (US$ 25M)</div>
+    </div>
+  </div>
+
+  <!-- Operational Interface -->
+  <div class="ops-layout">
+    
+    <!-- LEFT PANE: CONTROLS -->
+    <div class="pane">
+      <h3 style="margin-bottom: 12px; font-size: 1rem;">🎯 Tactical Telemetry</h3>
+
+      <div class="control-group">
+        <label class="control-label">Coastal Sector</label>
+        <select id="sector-select" onchange="updateModel()">
+          <option value="Paradip_Odisha">Paradip Port &amp; Industrial Hub (Odisha)</option>
+          <option value="Dhamra_Odisha">Dhamra Port &amp; Mangrove Delta (Odisha)</option>
+          <option value="Digha_WestBengal">Digha-Shankarpur Coastal Strip (West Bengal)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Central Pressure (P_central)</span>
+          <span id="label-press">940 hPa</span>
+        </div>
+        <input type="range" id="slider-press" min="900" max="1005" value="940" step="1" oninput="updateModel()" />
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Max Sustained Wind</span>
+          <span id="label-wind">195 km/h</span>
+        </div>
+        <input type="range" id="slider-wind" min="80" max="280" value="195" step="5" oninput="updateModel()" />
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Astronomical Tide</span>
+          <span id="label-tide">1.5 m</span>
+        </div>
+        <input type="range" id="slider-tide" min="0.0" max="4.0" value="1.5" step="0.1" oninput="updateModel()" />
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Landfall ETA</span>
+          <span id="label-eta">8 hours</span>
+        </div>
+        <input type="range" id="slider-eta" min="1" max="48" value="8" step="1" oninput="updateModel()" />
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 16px 0;" />
+
+      <h3 style="margin-bottom: 10px; font-size: 0.95rem;">♿ Accessibility &amp; Network</h3>
+      
+      <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <input type="checkbox" id="cb-colorblind" onchange="toggleColorBlind()" style="width: auto;" />
+        <label for="cb-colorblind" style="font-size: 0.85rem; cursor: pointer;">Color-Blind Safe Mode (WCAG AA)</label>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+        <input type="checkbox" id="cb-fieldmode" onchange="toggleFieldMode()" style="width: auto;" />
+        <label for="cb-fieldmode" style="font-size: 0.85rem; cursor: pointer;">Low-Bandwidth Field Mode (&lt;5KB)</label>
+      </div>
+
+      <button class="btn-primary" onclick="downloadCapXml()">⬇️ Export OASIS CAP v1.2 XML</button>
+    </div>
+
+    <!-- CENTER PANE: MAP & EVACUATION CORRIDORS -->
+    <div class="pane" id="map-pane">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="font-size: 1rem;">🗺️ Hydrodynamic Inundation &amp; Asset Exposure</h3>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Blue = Projected Surge Breach</span>
+      </div>
+      
+      <div id="map"></div>
+
+      <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="background: #0F172A; padding: 10px; border-radius: 6px;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: #EF4444;">🔴 Severed Arteries (Breached):</div>
+          <div id="severed-list" style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted);">NH-53 Coastal Expressway</div>
+        </div>
+        <div style="background: #0F172A; padding: 10px; border-radius: 6px;">
+          <div style="font-size: 0.8rem; font-weight: 700; color: #10B981;">🟢 Open High-Ridge Routes:</div>
+          <div id="clear-list" style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted);">SH-12 Kujang Inland Bypass</div>
+        </div>
+      </div>
+
+      <!-- Field Mode Terminal View -->
+      <div id="field-mode-view"></div>
+    </div>
+
+    <!-- RIGHT PANE: GEMINI INTELLIGENCE & PARAMETRIC -->
+    <div class="pane">
+      
+      <!-- Parametric Insurance Banner -->
+      <div class="parametric-box">
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: #A5B4FC; font-weight: 700;">
+          ⚡ Parametric Smart Contract Trigger
+        </div>
+        <div id="param-payout" style="font-size: 1.3rem; font-weight: 800; color: #FFF; margin: 4px 0;">
+          Tier 1: 100% Payout ($25,000,000)
+        </div>
+        <div id="param-reason" style="font-size: 0.78rem; color: #C7D2FE;">
+          Surge TWSE >= 3.0m &amp; Wind >= 195 km/h
+        </div>
+      </div>
+
+      <!-- Critical Asset Vulnerability Matrix -->
+      <h3 style="margin-bottom: 8px; font-size: 0.95rem;">⚡ Critical Asset Matrix</h3>
+      <div id="assets-list" style="max-height: 230px; overflow-y: auto; margin-bottom: 12px;"></div>
+
+      <!-- Multilingual Advisories & Audio -->
+      <h3 style="margin-bottom: 8px; font-size: 0.95rem;">📢 Regional Dispatches &amp; Audio</h3>
+      <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchLang('odia')">🇮🇳 Odia</button>
+        <button class="tab-btn" onclick="switchLang('bengali')">🇮🇳 Bengali</button>
+        <button class="tab-btn" onclick="switchLang('english')">🌐 English</button>
+      </div>
+      <div id="dispatch-text" class="tab-content"></div>
+      <button class="btn-primary" onclick="speakCurrentLang()">🔊 Play Voice Synthesis</button>
+
+    </div>
+
+  </div>
+
+  <script>
+    // State
+    let currentLang = 'odia';
+    let isColorBlind = false;
+    let isFieldMode = false;
+    let map, markersLayer, surgePolygon;
+
+    // Assets Data
+    const ASSETS = [
+      { id: "HOSP_01", name: "Paradip Port Trust Hospital", type: "hospital", lat: 20.292, lon: 86.668, elev: 2.4, crit: "TIER_1" },
+      { id: "SUBST_01", name: "Paradip 220kV Grid Substation", type: "substation", lat: 20.288, lon: 86.654, elev: 1.9, crit: "TIER_1" },
+      { id: "HWY_01", name: "NH-53 Coastal Arterial Highway", type: "highway", lat: 20.295, lon: 86.620, elev: 2.2, crit: "TIER_1" },
+      { id: "PUMP_01", name: "Mahanadi Drainage Pump Complex", type: "pump", lat: 20.272, lon: 86.690, elev: 1.4, crit: "TIER_1" },
+      { id: "SHELTER_01", name: "Paradip Elevated Cyclone Shelter", type: "shelter", lat: 20.301, lon: 86.650, elev: 4.2, crit: "TIER_2" },
+      { id: "HWY_02", name: "SH-12 Kujang Inland High Bypass", type: "highway", lat: 20.320, lon: 86.560, elev: 4.6, crit: "TIER_2" }
+    ];
+
+    function initMap() {
+      map = L.map('map').setView([20.30, 86.65], 12);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; CartoDB & OpenStreetMap contributors'
+      }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+      updateModel();
+    }
+
+    function calculateSurge(press, wind, tide) {
+      const staticSurge = Math.max(0, 1013.25 - press) * 0.0101;
+      const dynamicSurge = 0.00002 * Math.pow(wind, 2);
+      const twse = staticSurge + dynamicSurge + tide;
+      return {
+        static: Number(staticSurge.toFixed(2)),
+        dynamic: Number(dynamicSurge.toFixed(2)),
+        twse: Number(twse.toFixed(2))
+      };
+    }
+
+    function updateModel() {
+      const press = parseFloat(document.getElementById('slider-press').value);
+      const wind = parseFloat(document.getElementById('slider-wind').value);
+      const tide = parseFloat(document.getElementById('slider-tide').value);
+      const eta = parseFloat(document.getElementById('slider-eta').value);
+
+      document.getElementById('label-press').innerText = press + ' hPa';
+      document.getElementById('label-wind').innerText = wind + ' km/h';
+      document.getElementById('label-tide').innerText = tide.toFixed(1) + ' m';
+      document.getElementById('label-eta').innerText = eta + ' hours';
+
+      const surge = calculateSurge(press, wind, tide);
+      const twse = surge.twse;
+
+      // Update KPIs
+      document.getElementById('kpi-twse').innerText = twse + ' m';
+      document.getElementById('kpi-wind').innerText = wind + ' km/h';
+      document.getElementById('kpi-press').innerText = press + ' hPa';
+
+      // Threat Posture
+      let posture = 'YELLOW';
+      let postureClass = 'badge-green';
+      if (twse >= 2.8 || wind >= 180) {
+        posture = 'RED (CRITICAL)';
+        postureClass = 'badge-red';
+      } else if (twse >= 1.8 || wind >= 140) {
+        posture = 'ORANGE (SEVERE)';
+        postureClass = 'badge-orange';
+      }
+      document.getElementById('kpi-posture').innerText = posture;
+      document.getElementById('posture-badge').innerText = '[POSTURE: ' + posture.split(' ')[0] + ']';
+      document.getElementById('posture-badge').className = 'badge ' + postureClass;
+
+      // Parametric Trigger
+      let payout = '0% (Escrow Locked)';
+      let pReason = 'Telemetry below threshold';
+      if (wind >= 210 || twse >= 3.0 || press <= 930) {
+        payout = 'Tier 1: 100% Payout ($25,000,000)';
+        pReason = `TWSE: ${twse}m >= 3.0m | Wind: ${wind} km/h`;
+      } else if (wind >= 160 || twse >= 2.0 || press <= 950) {
+        payout = 'Tier 2: 50% Payout ($12,500,000)';
+        pReason = `TWSE: ${twse}m >= 2.0m | Wind: ${wind} km/h`;
+      } else if (wind >= 120 || twse >= 1.2 || press <= 970) {
+        payout = 'Tier 3: 20% Payout ($5,000,000)';
+        pReason = `TWSE: ${twse}m >= 1.2m | Wind: ${wind} km/h`;
+      }
+      document.getElementById('kpi-payout').innerText = payout.split(' ')[0] + ' ' + payout.split(' ')[1];
+      document.getElementById('param-payout').innerText = payout;
+      document.getElementById('param-reason').innerText = pReason;
+
+      // Update Map Markers & Inundation
+      markersLayer.clearLayers();
+
+      const colorSafe = isColorBlind ? '#56B4E9' : '#10B981';
+      const colorRisk = isColorBlind ? '#F0E442' : '#F59E0B';
+      const colorInundated = isColorBlind ? '#D55E00' : '#EF4444';
+
+      let assetsHtml = '';
+      let severedList = [];
+      let clearList = [];
+
+      ASSETS.forEach(a => {
+        const delta = twse - a.elev;
+        let prob = 0.05;
+        let color = colorSafe;
+        let status = 'Safe';
+
+        if (delta > 0) {
+          prob = Math.min(1.0, 0.55 + 0.45 * (delta / Math.max(1, twse)));
+          color = colorInundated;
+          status = 'Inundated';
+          if (a.type === 'highway') severedList.push(a.name);
+        } else if (Math.abs(delta) <= 0.6) {
+          prob = 0.35;
+          color = colorRisk;
+          status = 'At Risk';
+          if (a.type === 'highway') severedList.push(a.name);
+        } else {
+          if (a.type === 'highway') clearList.push(a.name);
+        }
+
+        const marker = L.circleMarker([a.lat, a.lon], {
+          radius: 9,
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.85,
+          weight: 2
+        }).bindPopup(`<b>${a.name}</b><br/>Elevation: ${a.elev}m | TWSE: ${twse}m<br/>Status: <b>${status}</b> (${Math.round(prob*100)}% Breach Prob)`);
+        
+        markersLayer.addLayer(marker);
+
+        assetsHtml += `
+          <div class="asset-item" style="border-left: 3px solid ${color};">
+            <div class="asset-header">
+              <span>${a.name}</span>
+              <span style="color: ${color};">${Math.round(prob*100)}%</span>
+            </div>
+            <div class="asset-desc">Elev: ${a.elev}m | Status: ${status}</div>
+          </div>
+        `;
+      });
+
+      document.getElementById('assets-list').innerHTML = assetsHtml;
+      document.getElementById('severed-list').innerText = severedList.length ? severedList.join(', ') : 'None';
+      document.getElementById('clear-list').innerText = clearList.length ? clearList.join(', ') : 'SH-12 Kujang Inland Bypass';
+
+      // Surge Polygon Simulation
+      if (surgePolygon) map.removeLayer(surgePolygon);
+      if (twse >= 2.0) {
+        surgePolygon = L.polygon([
+          [20.260, 86.680],
+          [20.280, 86.695],
+          [20.310, 86.670],
+          [20.295, 86.635],
+          [20.270, 86.650]
+        ], {
+          color: '#0055FF',
+          fillColor: '#0055FF',
+          fillOpacity: Math.min(0.65, 0.2 + (twse / 6.0))
+        }).addTo(map);
+      }
+
+      updateDispatches(twse, wind);
+    }
+
+    function updateDispatches(twse, wind) {
+      const dispatches = {
+        odia: `ଜରୁରୀ ସୂଚନା: ପାରାଦ୍ୱୀପ ଉପକୂଳରେ ${twse} ମିଟର ଉଚ୍ଚ ଜୁଆର ଓ ${wind} କି.ମି./ଘଣ୍ଟା ବେଗରେ ବାତ୍ୟା ଆସୁଛି। ତଳିଆ ଅଞ୍ଚଳରୁ ତୁରନ୍ତ ସୁରକ୍ଷିତ ଆଶ୍ରୟସ୍ଥଳୀକୁ ଚାଲିଯାଆନ୍ତୁ।`,
+        bengali: `জরুরী সতর্কতা: পারাদ্বীপ উপকূলে ${twse} মিটার উচ্চ জলোচ্ছ্বাস এবং ${wind} কিমি বেগে ঘূর্ণিঝড় আঘাত হানবে। নিচু এলাকার বাসিন্দাদের অবিলম্বে নিরাপদ স্থানে যাওয়ার নির্দেশ দেওয়া হচ্ছে।`,
+        english: `CRITICAL DISASTER BROADCAST: Severe storm surge of ${twse}m and ${wind} km/h winds forecast for Paradip sector. Mandatory evacuation active for coastal wards.`
+      };
+      document.getElementById('dispatch-text').innerText = dispatches[currentLang];
+    }
+
+    function switchLang(lang) {
+      currentLang = lang;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      const press = parseFloat(document.getElementById('slider-press').value);
+      const wind = parseFloat(document.getElementById('slider-wind').value);
+      const tide = parseFloat(document.getElementById('slider-tide').value);
+      const surge = calculateSurge(press, wind, tide);
+      updateDispatches(surge.twse, wind);
+    }
+
+    function speakCurrentLang() {
+      const text = document.getElementById('dispatch-text').innerText;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        if (currentLang === 'odia') msg.lang = 'or-IN';
+        else if (currentLang === 'bengali') msg.lang = 'bn-IN';
+        else msg.lang = 'en-IN';
+        window.speechSynthesis.speak(msg);
+      } else {
+        alert('Web Speech API not supported in this browser.');
+      }
+    }
+
+    function toggleColorBlind() {
+      isColorBlind = document.getElementById('cb-colorblind').checked;
+      updateModel();
+    }
+
+    function toggleFieldMode() {
+      isFieldMode = document.getElementById('cb-fieldmode').checked;
+      const mapEl = document.getElementById('map');
+      const fieldEl = document.getElementById('field-mode-view');
+      if (isFieldMode) {
+        mapEl.style.display = 'none';
+        fieldEl.style.display = 'block';
+        fieldEl.innerText = `=== AEGIS-CYCLONE FIELD DISPATCH (<5KB) ===\nPOSTURE: RED\nTWSE: ${document.getElementById('kpi-twse').innerText}\nWIND: ${document.getElementById('kpi-wind').innerText}\nSEVERED: ${document.getElementById('severed-list').innerText}\nCLEAR: ${document.getElementById('clear-list').innerText}\nODIA: ${document.getElementById('dispatch-text').innerText}\n=== TRANSMISSION VERIFIED ===`;
+      } else {
+        mapEl.style.display = 'block';
+        fieldEl.style.display = 'none';
+      }
+    }
+
+    function downloadCapXml() {
+      const xml = `<?xml version="1.0" encoding="utf-8"?>\n<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">\n  <identifier>AEGIS-CAP-${Date.now()}</identifier>\n  <sender>ops@aegis-cyclone.gov.in</sender>\n  <sent>${new Date().toISOString()}</sent>\n  <status>Actual</status>\n  <msgType>Alert</msgType>\n  <scope>Public</scope>\n  <info>\n    <category>Met</category>\n    <event>Severe Cyclone Storm Surge Threat</event>\n    <urgency>Immediate</urgency>\n    <severity>Extreme</severity>\n    <certainty>Observed</certainty>\n    <headline>Aegis-Cyclone Pre-Landfall Inundation Warning</headline>\n    <area><areaDesc>Paradip Coastal Zone</areaDesc></area>\n  </info>\n</alert>`;
+      const blob = new Blob([xml], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AEGIS_CAP_${Date.now()}.xml`;
+      a.click();
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>
