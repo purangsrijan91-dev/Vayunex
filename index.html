@@ -329,7 +329,8 @@
         </span>
       </div>
     </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <span id="backend-status-badge" class="badge" style="background: #0F172A; border: 1px solid #06B6D4; color: #06B6D4;">FASTAPI: STANDBY (EDGE SURROGATE)</span>
       <span id="posture-badge" class="badge badge-red">[POSTURE: RED]</span>
       <a href="https://github.com/purangsrijan91-dev/Vayunex" target="_blank" style="color: var(--accent-cyan); text-decoration: none; font-size: 0.85rem; font-weight: 600;">
         GitHub Repository ↗
@@ -941,6 +942,19 @@
       updateDispatches(twse, wind);
       updateSensingTables(press, wind, tide, eta);
       updateBriefs(twse, wind, press, severedList, clearList);
+
+      // Real-time synchronization with FastAPI Headless Backend over WebSocket
+      if (backendSocket && backendSocket.readyState === WebSocket.OPEN) {
+        try {
+          backendSocket.send(JSON.stringify({
+            central_pressure_hpa: press,
+            max_wind_speed_kmh: wind,
+            astronomical_tide_m: tide,
+            coastal_sector: document.getElementById('sector-select').value,
+            landfall_eta_hours: eta
+          }));
+        } catch (e) {}
+      }
     }
 
     function updateSensingTables(press, wind, tide, eta) {
@@ -1113,7 +1127,55 @@
       a.click();
     }
 
-    window.onload = initMap;
+    let backendSocket = null;
+    const BACKEND_WS_URL = "ws://localhost:8000/ws/telemetry";
+
+    function initBackendConnection() {
+      try {
+        backendSocket = new WebSocket(BACKEND_WS_URL);
+        backendSocket.onopen = function() {
+          const badge = document.getElementById('backend-status-badge');
+          if (badge) {
+            badge.innerText = 'FASTAPI BACKEND: CONNECTED (WS)';
+            badge.style.borderColor = '#10B981';
+            badge.style.color = '#34D399';
+          }
+        };
+        backendSocket.onmessage = function(event) {
+          try {
+            const msg = JSON.parse(event.data);
+            if (msg.event === "TELEMETRY_UPDATE" && msg.incident_command_sop) {
+              const sop = msg.incident_command_sop;
+              document.getElementById('kpi-posture').innerText = sop.threat_posture + ' (FASTAPI VERIFIED)';
+              if (sop.parametric_insurance && sop.parametric_insurance.settlement_proof_hash) {
+                document.getElementById('param-hash').innerText = 'SHA-256 State Hash: ' + sop.parametric_insurance.settlement_proof_hash;
+              }
+            }
+          } catch (e) {}
+        };
+        backendSocket.onerror = function() {
+          const badge = document.getElementById('backend-status-badge');
+          if (badge) {
+            badge.innerText = 'FASTAPI: STANDBY (EDGE SURROGATE)';
+            badge.style.borderColor = '#06B6D4';
+            badge.style.color = '#06B6D4';
+          }
+        };
+        backendSocket.onclose = function() {
+          const badge = document.getElementById('backend-status-badge');
+          if (badge) {
+            badge.innerText = 'FASTAPI: STANDBY (EDGE SURROGATE)';
+            badge.style.borderColor = '#06B6D4';
+            badge.style.color = '#06B6D4';
+          }
+        };
+      } catch (e) {}
+    }
+
+    window.onload = function() {
+      initMap();
+      initBackendConnection();
+    };
   </script>
 </body>
 </html>

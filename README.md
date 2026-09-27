@@ -6,7 +6,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.141.1-009688.svg)](https://fastapi.tiangolo.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.64.0-FF4B4B.svg)](https://streamlit.io/)
 [![Google GenAI SDK](https://img.shields.io/badge/Google_GenAI_SDK-Gemini_3.7_Flash-4285F4.svg)](https://github.com/google-gemini/generative-ai-python)
-[![Tests Passing](https://img.shields.io/badge/Pytest-38%2F38_Passing_(100%25)-success.svg)](#test-suite--verification)
+[![Tests Passing](https://img.shields.io/badge/Pytest-39%2F39_Passing_(100%25)-success.svg)](#test-suite--verification)
 [![Aegis-Cyclone CI Verification](https://github.com/purangsrijan91-dev/Vayunex/actions/workflows/ci.yml/badge.svg)](https://github.com/purangsrijan91-dev/Vayunex/actions/workflows/ci.yml)
 [![Live Prototype](https://img.shields.io/badge/Prototype-GitHub%20Pages%20Live-emerald.svg)](https://purangsrijan91-dev.github.io/Vayunex/)
 [![A11y Standard](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA_Compliant-emerald.svg)](#accessibility--low-bandwidth-modes)
@@ -29,14 +29,34 @@ Traditional coastal disaster management is overwhelmingly **reactive**: emergenc
 
 ## 2. System Architecture
 
+```text
+┌───────────────────────────────────────────────────────────┐
+│        GitHub Pages Frontend  /  Streamlit Console        │
+└─────────────────────────────┬─────────────────────────────┘
+                              │  (REST / WebSocket API)
+                              ▼
+┌───────────────────────────────────────────────────────────┐
+│            FastAPI Headless Backend (Python)              │
+│  ├── Google Earth Engine Python API (DEM + SAR Surge)     │
+│  ├── OpenStreetMap Overpass Client (Dynamic Asset Graph)  │
+│  └── Google GenAI SDK (Gemini 3.7 Flash Multimodal Agent) │
+└───────────────────────────────────────────────────────────┘
+```
+
 ```mermaid
 flowchart TD
-    subgraph DataIngestion ["1. Geospatial & Telemetry Feeds"]
-        T["Atmospheric Telemetry\n(P_central, V_wind, RMW, Tide)"]
-        DEM["Digital Elevation Model\n(MERIT Hydro / NASADEM)"]
-        SAR["Sentinel-1 SAR S1_GRD\n(Antecedent Soil Moisture)"]
-        OSM["OpenStreetMap Overpass API\n(Hospitals, Substations, Highways)"]
+    subgraph ClientLayer ["0. Dual Frontend & Presentation"]
+        GP["GitHub Pages Web Dashboard\n(Client-Side Edge Mode + Live WS Link)"]
+        SC["Streamlit Operations Console\n(Dark Ops, Dual-Pane Folium)"]
     end
+
+    subgraph APILayer ["FastAPI Headless Backend (Python)"]
+        REST["REST API Endpoints\n(/forecast, /parametric, /sensing, /loss-report)"]
+        WS["Full-Duplex WebSocket Engine\n(/ws/telemetry)"]
+    end
+
+    GP -->|REST / WS| APILayer
+    SC -->|REST / WS| APILayer
 
     subgraph HydroEngine ["2. Hydrodynamic Surge Pipeline (GEE)"]
         Physics["Hydrodynamic Physics:\nTWSE = Static + Dynamic + Tide"]
@@ -186,6 +206,7 @@ python -m pytest -v
 | `test_parametric.py` | `test_parametric_tier3_moderate` | Wind $\ge 120$ km/h triggers 20% liquidity payout | **PASSED** |
 | `test_parametric.py` | `test_parametric_no_trigger` | Normal conditions lock escrow with 0% payout | **PASSED** |
 | `test_parametric.py` | `test_audit_receipt_generation` | 64-char SHA-256 cryptographic state hash | **PASSED** |
+| `test_websocket.py` | `test_websocket_telemetry_streaming` | Full-duplex WebSocket connection, handshake, bidirectional telemetry exchange | **PASSED** |
 
 ---
 
@@ -199,7 +220,7 @@ Vayunex/
 ├── README.md                        # Master operational documentation & architecture
 ├── index.html                       # Standalone Web Operations Center (GitHub Pages live demo)
 ├── app/
-│   ├── main.py                      # FastAPI REST API with RBAC, sensing & financial endpoints
+│   ├── main.py                      # FastAPI REST & WebSocket API (/ws/telemetry)
 │   ├── ui.py                        # Streamlit Command Operations Center (Dark Ops, Folium, 4 Tabs)
 │   ├── config.py                    # Pydantic BaseSettings, thresholds & coastal sectors
 │   ├── core/
@@ -225,7 +246,8 @@ Vayunex/
     ├── test_hazus_damage.py         # FEMA HAZUS-MH depth-damage curves & portfolio valuation tests
     ├── test_incois_tidal.py         # INCOIS tidal harmonics, Holland vortex & sensing API tests
     ├── test_parametric.py           # Smart contract trigger tiers & cryptographic hash tests
-    └── test_api_security.py         # Boundary validation, injection defense & API tests
+    ├── test_api_security.py         # Boundary validation, injection defense & API tests
+    └── test_websocket.py            # Full-duplex WebSocket telemetry streaming tests
 ```
 
 ---

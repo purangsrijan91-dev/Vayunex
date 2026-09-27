@@ -6,8 +6,8 @@ and automated parametric liquidity triggers.
 """
 from datetime import datetime, timezone
 import logging
-from typing import Dict, Optional
-from fastapi import Depends, FastAPI, HTTPException, Response, status
+from typing import Dict, List, Optional
+from fastapi import Depends, FastAPI, HTTPException, Response, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 
@@ -63,6 +63,30 @@ app.add_middleware(
 _ACTIVE_CAP_ALERTS: Dict[str, str] = {}
 
 
+class ConnectionManager:
+    """Manages full-duplex WebSocket connections for live civil defense telemetry streaming."""
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in list(self.active_connections):
+            try:
+                await connection.send_json(message)
+            except Exception:
+                self.disconnect(connection)
+
+
+manager = ConnectionManager()
+
+
 @app.get("/")
 def root_info():
     """Service landing page and operational metadata."""
@@ -72,8 +96,10 @@ def root_info():
         "environment": settings.ENVIRONMENT,
         "status": "OPERATIONAL",
         "docs": "/docs",
+        "websocket_endpoint": "/ws/telemetry",
+        "protocols": ["REST (HTTP/1.1)", "WebSocket (WS)"],
         "active_coastal_sectors": list(settings.COASTAL_SECTORS.keys()),
-        "architecture": "Multimodal GEE Inundation + OSM Vector Graph + Gemini 3.7 Flash + Parametric Triggers"
+        "architecture": "FastAPI Backend + GEE DEM/SAR Inundation + OSM Overpass + Gemini 3.7 Flash + Parametric Triggers"
     }
 
 
@@ -276,4 +302,49 @@ def generate_financial_loss_report(
     assets = extract_critical_infrastructure(telemetry.coastal_sector)
     report = estimate_infrastructure_losses(assets, inundation.twse_m)
     return report
+
+
+@app.websocket("/ws/telemetry")
+async def websocket_telemetry_endpoint(websocket: WebSocket):
+    """Full-duplex WebSocket endpoint for real-time telemetry streaming and cascade broadcast feeds."""
+    await manager.connect(websocket)
+    try:
+        # Handshake
+        await websocket.send_json({
+            "event": "CONNECTED",
+            "system": settings.APP_NAME,
+            "version": settings.APP_VERSION,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": "OPERATIONAL"
+        })
+        while True:
+            data = await websocket.receive_json()
+            # Process received telemetry
+            telemetry = CycloneTelemetry(**data)
+            inundation = run_inundation_model(telemetry)
+            assets = extract_critical_infrastructure(telemetry.coastal_sector)
+            sop = reason_cyclone_impact(telemetry, inundation, assets)
+
+            response_payload = {
+                "event": "TELEMETRY_UPDATE",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "telemetry": {
+                    "storm_name": telemetry.storm_name,
+                    "storm_id": telemetry.storm_id,
+                    "central_pressure_hpa": telemetry.central_pressure_hpa,
+                    "max_wind_speed_kmh": telemetry.max_wind_speed_kmh,
+                    "twse_m": inundation.twse_m,
+                    "inundated_area_sqkm": inundation.inundated_area_sqkm,
+                    "imd_category": telemetry.imd_category,
+                },
+                "incident_command_sop": sop.model_dump(),
+                "parametric_status": sop.parametric_insurance.model_dump()
+            }
+            await websocket.send_json(response_payload)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        logger.warning(f"WebSocket telemetry session error: {e}")
+        manager.disconnect(websocket)
+
 
