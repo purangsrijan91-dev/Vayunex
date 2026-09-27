@@ -7,6 +7,7 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.64.0-FF4B4B.svg)](https://streamlit.io/)
 [![Google GenAI SDK](https://img.shields.io/badge/Google_GenAI_SDK-Gemini_3.7_Flash-4285F4.svg)](https://github.com/google-gemini/generative-ai-python)
 [![Tests Passing](https://img.shields.io/badge/Pytest-25%2F25_Passing_(100%25)-success.svg)](#test-suite--verification)
+[![Aegis-Cyclone CI Verification](https://github.com/purangsrijan91-dev/Vayunex/actions/workflows/ci.yml/badge.svg)](https://github.com/purangsrijan91-dev/Vayunex/actions/workflows/ci.yml)
 [![A11y Standard](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA_Compliant-emerald.svg)](#accessibility--low-bandwidth-modes)
 
 ---
