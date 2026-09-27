@@ -6,7 +6,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.141.1-009688.svg)](https://fastapi.tiangolo.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.64.0-FF4B4B.svg)](https://streamlit.io/)
 [![Google GenAI SDK](https://img.shields.io/badge/Google_GenAI_SDK-Gemini_3.7_Flash-4285F4.svg)](https://github.com/google-gemini/generative-ai-python)
-[![Tests Passing](https://img.shields.io/badge/Pytest-25%2F25_Passing_(100%25)-success.svg)](#test-suite--verification)
+[![Tests Passing](https://img.shields.io/badge/Pytest-38%2F38_Passing_(100%25)-success.svg)](#test-suite--verification)
 [![Aegis-Cyclone CI Verification](https://github.com/purangsrijan91-dev/Vayunex/actions/workflows/ci.yml/badge.svg)](https://github.com/purangsrijan91-dev/Vayunex/actions/workflows/ci.yml)
 [![Live Prototype](https://img.shields.io/badge/Prototype-GitHub%20Pages%20Live-emerald.svg)](https://purangsrijan91-dev.github.io/Vayunex/)
 [![A11y Standard](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA_Compliant-emerald.svg)](#accessibility--low-bandwidth-modes)
@@ -18,10 +18,12 @@
 Traditional coastal disaster management is overwhelmingly **reactive**: emergency teams wait for storm landfall, conduct delayed post-event damage surveys, and face bureaucratic multi-week delays in disaster relief funding.
 
 **Aegis-Cyclone** transforms coastal cyclone operations into an **anticipatory, intelligence-driven, and automated lifecycle**:
-1. **Pre-Landfall Hydrodynamic Surge Modeling:** Combines Inverse Barometer Effect, Dynamic Wind Setup, and Astronomical Tide into deterministic Total Water Surface Elevation ($TWSE$) overlaid on hydro-enforced digital elevation data (MERIT Hydro / NASADEM).
+1. **Pre-Landfall Hydrodynamic Surge Modeling:** Combines Inverse Barometer Effect, Dynamic Wind Setup, and Astronomical Tide into deterministic Total Water Surface Elevation ($TWSE$) overlaid on hydro-enforced digital elevation data (MERIT Hydro / NASADEM) with 8-connectivity flow checking.
 2. **Multimodal Spatial Cascade Reasoning (Gemini 3.7 Flash):** Ingests 1024x1024 hydrodynamic surge rasters, atmospheric telemetry, and vector infrastructure graphs to deduce physical breaches, electrical grid collapses, and severed evacuation routes.
-3. **Automated Parametric Insurance Liquidity Triggers:** Deterministic-to-stochastic smart contract triggers release pre-positioned disaster capital within minutes of threshold breach, sealed with cryptographic SHA-256 state proofs.
-4. **Resilient Public Alerts & Field Transmission:** Generates OASIS CAP v1.2 XML broadcasts, regional vernacular dispatches (Odia, Bengali, English) with audio synthesis, and ultra-compressed plaintext dispatches (<5KB) for degraded 2G/EDGE cellular networks.
+3. **FEMA HAZUS-MH Infrastructure Loss Estimation:** Computes quantitative physical structural damage %, equipment loss %, dollar exposure, and downtime days per critical asset class.
+4. **INCOIS Tidal Harmonics & IMD/JTWC Tracking:** Astronomical harmonic constituent modeling ($M_2, S_2, K_1, O_1$) and Holland (1980) parametric vortex radial decay profiles.
+5. **Automated Parametric Insurance Liquidity Triggers:** Deterministic-to-stochastic smart contract triggers release pre-positioned disaster capital within minutes of threshold breach, sealed with cryptographic SHA-256 state proofs.
+6. **Resilient Public Alerts & Field Transmission:** Generates OASIS CAP v1.2 XML broadcasts, regional vernacular dispatches (Odia, Bengali, English) with audio synthesis, and ultra-compressed plaintext dispatches (<5KB) for degraded 2G/EDGE cellular networks.
 
 ---
 
@@ -101,7 +103,7 @@ Calculates storm surge using physical approximations:
 * Ingests `amenity=hospital`, `power=substation`, and `highway IN [motorway, trunk, primary]`.
 * **Offline Resilience:** Seamless fallback to bundled offline GeoJSON fixtures for the East Coast (Paradip, Dhamra, Puri, Balasore, Digha, Haldia).
 
-### 3.4 Parametric Insurance & Smart Contracts (`app/core/parametric_engine.py`)
+#### 3.4 Parametric Insurance & Smart Contracts (`app/core/parametric_engine.py`)
 * **Tier-1 (100% Payout):** Wind $\ge 210\text{ km/h}$ OR TWSE $\ge 3.0\text{m}$ OR $P_{central} \le 930\text{ hPa}$.
 * **Tier-2 (50% Payout):** Wind $\ge 160\text{ km/h}$ OR TWSE $\ge 2.0\text{m}$ OR $P_{central} \le 950\text{ hPa}$.
 * **Tier-3 (20% Payout):** Wind $\ge 120\text{ km/h}$ OR TWSE $\ge 1.2\text{m}$ OR $P_{central} \le 970\text{ hPa}$.
@@ -115,21 +117,37 @@ Calculates storm surge using physical approximations:
 * **Spatial Sanitizer (`sanitizer.py`):** Enforces strict coordinate validation and rejects inland points (e.g. Delhi, Nagpur, Hyderabad) where storm surges are physically impossible.
 * **Prompt Injection Defense:** Regex filtering of prompt override patterns, system tokens, and control characters.
 
+### 3.6 FEMA HAZUS-MH Coastal Depth-Damage Engine (`app/core/hazus_engine.py`)
+* **Quantitative Vulnerability Matrices:** Calibrated stage-damage functions per critical infrastructure class:
+  - **Substations:** Switchgear hyper-sensitivity (0.3m = 35% equipment loss, >1.2m = 90%+ loss, 120-day restoration).
+  - **Trauma Hospitals:** Ground-floor diagnostic, generator, and liquid oxygen evaporator vulnerability curves.
+  - **Arterial Highways:** Asphalt peeling, culvert washout, and embankment erosion initiated at 0.3m depth.
+  - **Cyclone Shelters:** Stilted concrete structures designed to withstand up to 1.8m surge with <20% damage.
+* **Portfolio Loss Reports:** Computes aggregate capital exposure, composite loss ratio %, severely damaged asset count (>50%), and maximum critical downtime days.
+
+### 3.7 INCOIS Astronomical Tidal Harmonics & Holland Wind Field (`app/core/incois_engine.py`)
+* **Tidal Harmonic Constituent Synthesis:** Synthesizes constituents $M_2, S_2, K_1, O_1$ for Bay of Bengal gauges (Paradip, Dhamra, Puri, Balasore, Digha, Haldia) to predict exact astronomical tide and phase at landfall hour.
+* **Holland (1980) Parametric Vortex Profile:** Computes $B$-parameter shape factor ($1.0 \le B \le 2.5$) and radial velocity decay $V(r)$ from storm eye to 250 km.
+* **IMD / JTWC Track Waypoints:** Ingests historical benchmark tracks (Cyclone Fani 2019, Amphan 2020, Yaas 2021) and computes forward landfall approach trajectories.
+
+### 3.8 Fast Hydrological 8-Connectivity (`app/core/gee_engine.py`)
+* **Anti-Bathtub Filtering:** Implements fast 8-connectivity flood-fill seeded from open ocean boundary cells to ensure inland depressions behind high topographical ridges are not falsely marked as flooded.
+
 ---
 
 ## 4. Test Suite & Verification
 
-The platform includes 25 unit and integration tests across physics, schema, security, and smart contract execution.
+The platform includes 38 unit and integration tests across physics, schema, security, tidal modeling, HAZUS loss estimation, and smart contract execution.
 
 ```bash
 # Run full automated test suite
 python -m pytest -v
 ```
 
-### Verified Test Results (25 / 25 Passing - 100%)
+### Verified Test Results (38 / 38 Passing - 100%)
 
 | Test Module | Test Name | Verified Coverage | Status |
-| :--- | :--- | :--- | :---: |
+| :--- | :--- | :--- | :--- |
 | `test_api_security.py` | `test_valid_coastal_coordinates` | Validates active Bay of Bengal coastal envelope | **PASSED** |
 | `test_api_security.py` | `test_reject_inland_coordinates` | Rejects non-coastal inland points (Delhi, Nagpur) | **PASSED** |
 | `test_api_security.py` | `test_reject_axis_inversion` | Detects and blocks inverted (Lon, Lat) inputs | **PASSED** |
@@ -150,6 +168,19 @@ python -m pytest -v
 | `test_gemini_reasoner.py`| `test_oasis_cap_xml_conformance` | Validates OASIS CAP v1.2 XML specification parsing | **PASSED** |
 | `test_gemini_reasoner.py`| `test_cascade_failure_deduction` | Dynamic substation breach -> hospital power failure | **PASSED** |
 | `test_gemini_reasoner.py`| `test_ics201_summary_formatting` | Structured ICS-201 Incident Briefing document | **PASSED** |
+| `test_hazus_damage.py` | `test_zero_water_depth_damage` | Zero water depth results in 0% structural & equipment loss | **PASSED** |
+| `test_hazus_damage.py` | `test_substation_saltwater_sensitivity` | Substation fragility curve at moderate and extreme surge | **PASSED** |
+| `test_hazus_damage.py` | `test_hospital_progressive_damage` | Progressive diagnostic and emergency generator loss | **PASSED** |
+| `test_hazus_damage.py` | `test_cyclone_shelter_resilience` | Stilted shelter survivability up to 1.8m surge | **PASSED** |
+| `test_hazus_damage.py` | `test_portfolio_loss_summary_calculation` | Aggregate portfolio valuation, loss ratio %, downtime | **PASSED** |
+| `test_incois_tidal.py` | `test_tidal_harmonic_prediction_paradip` | M2, S2, K1, O1 tidal prediction within physical bounds | **PASSED** |
+| `test_incois_tidal.py` | `test_tidal_forecast_summary_24h` | 24-hr hourly tidal curve and High/Low tide detection | **PASSED** |
+| `test_incois_tidal.py` | `test_holland_wind_field_decay` | Holland B-parameter and radial velocity decay profile | **PASSED** |
+| `test_incois_tidal.py` | `test_historical_and_forecast_tracks` | Track retrieval for Cyclone Fani (2019) and forecasts | **PASSED** |
+| `test_incois_tidal.py` | `test_api_sensing_tide_endpoint` | REST API GET `/api/v1/sensing/tide` validation | **PASSED** |
+| `test_incois_tidal.py` | `test_api_sensing_track_endpoint` | REST API GET `/api/v1/sensing/track` validation | **PASSED** |
+| `test_incois_tidal.py` | `test_api_sensing_wind_profile_endpoint`| REST API GET `/api/v1/sensing/wind-profile` validation | **PASSED** |
+| `test_incois_tidal.py` | `test_api_financial_loss_report_endpoint`| REST API POST `/api/v1/financial/loss-report` RBAC | **PASSED** |
 | `test_parametric.py` | `test_parametric_tier1_super_cyclone` | Wind $\ge 210$ km/h triggers 100% liquidity payout | **PASSED** |
 | `test_parametric.py` | `test_parametric_tier2_severe` | Wind $\ge 160$ km/h triggers 50% liquidity payout | **PASSED** |
 | `test_parametric.py` | `test_parametric_tier3_moderate` | Wind $\ge 120$ km/h triggers 20% liquidity payout | **PASSED** |
@@ -166,14 +197,17 @@ Vayunex/
 ├── pyproject.toml                   # Project configuration and dependencies
 ├── requirements.txt                 # Pinned dependencies
 ├── README.md                        # Master operational documentation & architecture
+├── index.html                       # Standalone Web Operations Center (GitHub Pages live demo)
 ├── app/
-│   ├── main.py                      # FastAPI REST API with RBAC & CAP v1.2 endpoints
-│   ├── ui.py                        # Streamlit Command Operations Center (Dark Ops, Folium)
+│   ├── main.py                      # FastAPI REST API with RBAC, sensing & financial endpoints
+│   ├── ui.py                        # Streamlit Command Operations Center (Dark Ops, Folium, 4 Tabs)
 │   ├── config.py                    # Pydantic BaseSettings, thresholds & coastal sectors
 │   ├── core/
-│   │   ├── gee_engine.py            # Hydrodynamic surge modeling & 1024x1024 raster generator
+│   │   ├── gee_engine.py            # Hydrodynamic surge modeling, 8-connectivity & visual raster
 │   │   ├── osm_engine.py            # Overpass API infrastructure extractor & spatial cache
 │   │   ├── gemini_brain.py          # Gemini 3.7 Flash Multimodal Reasoning Agent + Fallback
+│   │   ├── hazus_engine.py          # FEMA HAZUS-MH depth-damage curves & portfolio loss report
+│   │   ├── incois_engine.py         # INCOIS tidal harmonics, Holland wind field & IMD tracks
 │   │   └── parametric_engine.py     # Smart contract & SHA-256 liquidity verification logic
 │   ├── schemas/
 │   │   ├── telemetry.py             # Cyclone atmospheric telemetry & TWSE properties
@@ -188,6 +222,8 @@ Vayunex/
     ├── conftest.py                  # Shared pytest fixtures
     ├── test_gee_surrogate.py        # Hydrodynamic physics & raster tests
     ├── test_gemini_reasoner.py      # Schema conformity, CAP v1.2 & cascade deduction tests
+    ├── test_hazus_damage.py         # FEMA HAZUS-MH depth-damage curves & portfolio valuation tests
+    ├── test_incois_tidal.py         # INCOIS tidal harmonics, Holland vortex & sensing API tests
     ├── test_parametric.py           # Smart contract trigger tiers & cryptographic hash tests
     └── test_api_security.py         # Boundary validation, injection defense & API tests
 ```

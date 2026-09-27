@@ -39,6 +39,8 @@
       padding-bottom: 16px;
       border-bottom: 1px solid var(--border-color);
       margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .brand-title {
       font-size: 1.5rem;
@@ -60,10 +62,44 @@
     .badge-orange { background: #78350F; color: #FEF3C7; border: 1px solid #D97706; }
     .badge-green { background: #064E3B; color: #A7F3D0; border: 1px solid #059669; }
 
+    /* Top Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+      overflow-x: auto;
+    }
+    .nav-tab-btn {
+      background: #1E293B;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .nav-tab-btn:hover {
+      color: #FFF;
+      border-color: var(--accent-cyan);
+    }
+    .nav-tab-btn.active {
+      background: var(--accent-blue);
+      color: #FFF;
+      border-color: var(--accent-blue);
+    }
+
     /* KPI Grid */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
     }
@@ -80,15 +116,47 @@
       font-weight: 600;
     }
     .kpi-val {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 800;
       margin-top: 4px;
     }
 
-    /* Main Layout */
+    /* Cascade Alert Container */
+    .cascade-graph-container {
+      background: #0F172A;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+    }
+    .cascade-chain {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.82rem;
+    }
+    .node-box {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .node-red { background: #7F1D1D; color: #FECACA; border: 1px solid #DC2626; }
+    .node-amber { background: #78350F; color: #FEF3C7; border: 1px solid #D97706; }
+    .node-purple { background: #4C1D95; color: #DDD6FE; border: 1px solid #7C3AED; }
+    .node-pink { background: #831843; color: #FCE7F3; border: 1px solid #DB2777; }
+    .node-rose { background: #500724; color: #FFE4E6; border: 1px solid #F43F5E; }
+    .arrow { color: #94A3B8; font-weight: 700; }
+
+    /* Operational Layout */
     .ops-layout {
       display: grid;
-      grid-template-columns: 320px 1fr 380px;
+      grid-template-columns: 310px 1fr 370px;
       gap: 16px;
     }
     @media (max-width: 1200px) {
@@ -102,7 +170,7 @@
       padding: 16px;
     }
 
-    /* Sliders */
+    /* Controls */
     .control-group {
       margin-bottom: 14px;
     }
@@ -136,6 +204,15 @@
     }
     button.btn-primary:hover {
       background: #0D9488;
+    }
+    button.btn-sec {
+      background: #334155;
+      border: none;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+    button.btn-sec:hover {
+      background: #475569;
     }
 
     /* Map */
@@ -214,6 +291,30 @@
       font-size: 0.85rem;
       margin-top: 14px;
     }
+
+    /* Table styles */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 10px;
+    }
+    table.data-table th {
+      background: #0F172A;
+      color: var(--text-muted);
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+    }
+    table.data-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #1E293B;
+    }
+    table.data-table tr:hover {
+      background: #1E293B;
+    }
   </style>
 </head>
 <body>
@@ -235,6 +336,14 @@
       </a>
     </div>
   </header>
+
+  <!-- Top Navigation Tabs -->
+  <div class="nav-tabs">
+    <button class="nav-tab-btn active" onclick="switchMainView('ops')">🗺️ Geospatial &amp; Cascade Ops</button>
+    <button class="nav-tab-btn" onclick="switchMainView('hazus')">📊 Financial Resilience (FEMA HAZUS-MH)</button>
+    <button class="nav-tab-btn" onclick="switchMainView('sensing')">🌊 Marine &amp; Atmospheric Sensing (INCOIS / IMD)</button>
+    <button class="nav-tab-btn" onclick="switchMainView('dispatches')">📻 Dispatches &amp; OASIS CAP v1.2</button>
+  </div>
 
   <!-- KPI Banner -->
   <div class="kpi-grid">
@@ -260,127 +369,330 @@
     </div>
   </div>
 
-  <!-- Operational Interface -->
-  <div class="ops-layout">
-    
-    <!-- LEFT PANE: CONTROLS -->
+  <!-- Multi-Order Cascade Failure Topology -->
+  <div class="cascade-graph-container" id="cascade-graph">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 0.8rem; font-weight: 700; color: #38BDF8; text-transform: uppercase; letter-spacing: 0.05em;">
+        ⚡ Gemini 3.7 Flash Cascade Reasoning Topology (Second-Order Vulnerability Graph)
+      </span>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">Deterministic Graph Traversal</span>
+    </div>
+    <div class="cascade-chain">
+      <div class="node-box node-red" id="node-surge">🌊 Surge Inundation (&gt;2.8m)</div>
+      <span class="arrow">──►</span>
+      <div class="node-box node-amber" id="node-road">🛣️ NH-53 Embankment Breached</div>
+      <span class="arrow">──►</span>
+      <div class="node-box node-amber" id="node-fuel">⛽ Diesel Tanker Convoys Severed</div>
+      <span class="arrow">──►</span>
+      <div class="node-box node-purple" id="node-subst">⚡ 220kV Substation Tripped</div>
+      <span class="arrow">──►</span>
+      <div class="node-box node-pink" id="node-gen">🏥 Port Hospital Generators Exhausted</div>
+      <span class="arrow">──►</span>
+      <div class="node-box node-rose" id="node-icu">🚨 ICU Liquid O2 Evaporators Halt</div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: GEOSPATIAL & CASCADE OPS -->
+  <!-- ===================================================================== -->
+  <div id="view-ops">
+    <div class="ops-layout">
+      
+      <!-- LEFT PANE: CONTROLS -->
+      <div class="pane">
+        <h3 style="margin-bottom: 12px; font-size: 1rem;">🎯 Tactical Telemetry</h3>
+
+        <div class="control-group">
+          <label class="control-label">Coastal Sector</label>
+          <select id="sector-select" onchange="updateModel()">
+            <option value="Paradip_Odisha">Paradip Port &amp; Industrial Hub (Odisha)</option>
+            <option value="Dhamra_Odisha">Dhamra Port &amp; Mangrove Delta (Odisha)</option>
+            <option value="Puri_Odisha">Puri Heritage &amp; Pilgrim Belt (Odisha)</option>
+            <option value="Balasore_Odisha">Balasore / Chandipur Range (Odisha)</option>
+            <option value="Digha_WestBengal">Digha-Shankarpur Coastal Strip (West Bengal)</option>
+            <option value="Haldia_WestBengal">Haldia Port &amp; Petrochemical Complex (West Bengal)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Central Pressure (P_central)</span>
+            <span id="label-press">940 hPa</span>
+          </div>
+          <input type="range" id="slider-press" min="900" max="1005" value="940" step="1" oninput="updateModel()" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Max Sustained Wind</span>
+            <span id="label-wind">195 km/h</span>
+          </div>
+          <input type="range" id="slider-wind" min="80" max="280" value="195" step="5" oninput="updateModel()" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Astronomical Tide</span>
+            <span id="label-tide">1.5 m</span>
+          </div>
+          <input type="range" id="slider-tide" min="0.0" max="4.0" value="1.5" step="0.1" oninput="updateModel()" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Landfall ETA</span>
+            <span id="label-eta">8 hours</span>
+          </div>
+          <input type="range" id="slider-eta" min="1" max="48" value="8" step="1" oninput="updateModel()" />
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 14px 0;" />
+
+        <h3 style="margin-bottom: 8px; font-size: 0.9rem;">♿ Accessibility &amp; Networks</h3>
+        
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <input type="checkbox" id="cb-colorblind" onchange="toggleColorBlind()" style="width: auto;" />
+          <label for="cb-colorblind" style="font-size: 0.85rem; cursor: pointer;">Color-Blind Safe Mode (WCAG AA)</label>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input type="checkbox" id="cb-fieldmode" onchange="toggleFieldMode()" style="width: auto;" />
+          <label for="cb-fieldmode" style="font-size: 0.85rem; cursor: pointer;">Low-Bandwidth Mode (&lt;5KB)</label>
+        </div>
+
+        <button class="btn-primary" onclick="downloadCapXml()">⬇️ Export OASIS CAP v1.2 XML</button>
+        <button class="btn-sec" onclick="downloadIcs201()">⬇️ Download ICS-201 Text Brief</button>
+      </div>
+
+      <!-- CENTER PANE: MAP & EVACUATION CORRIDORS -->
+      <div class="pane" id="map-pane">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h3 style="font-size: 1rem;">🗺️ Hydrodynamic Inundation &amp; Asset Exposure</h3>
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Blue = Inundation Breach | 8-Connected</span>
+        </div>
+        
+        <div id="map"></div>
+
+        <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div style="background: #0F172A; padding: 10px; border-radius: 6px;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #EF4444;">🔴 Severed Arteries (Breached):</div>
+            <div id="severed-list" style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted);">NH-53 Coastal Expressway</div>
+          </div>
+          <div style="background: #0F172A; padding: 10px; border-radius: 6px;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #10B981;">🟢 Open High-Ridge Routes:</div>
+            <div id="clear-list" style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted);">SH-12 Kujang Inland Bypass</div>
+          </div>
+        </div>
+
+        <!-- Field Mode Terminal View -->
+        <div id="field-mode-view"></div>
+      </div>
+
+      <!-- RIGHT PANE: GEMINI INTELLIGENCE & PARAMETRIC -->
+      <div class="pane">
+        
+        <!-- Parametric Insurance Banner -->
+        <div class="parametric-box">
+          <div style="font-size: 0.75rem; text-transform: uppercase; color: #A5B4FC; font-weight: 700;">
+            ⚡ Parametric Smart Contract Trigger
+          </div>
+          <div id="param-payout" style="font-size: 1.3rem; font-weight: 800; color: #FFF; margin: 4px 0;">
+            Tier 1: 100% Payout ($25,000,000)
+          </div>
+          <div id="param-reason" style="font-size: 0.78rem; color: #C7D2FE;">
+            Surge TWSE >= 3.0m &amp; Wind >= 195 km/h
+          </div>
+          <div id="param-hash" style="font-size: 0.7rem; color: #94A3B8; font-family: monospace; margin-top: 6px; word-break: break-all;">
+            SHA-256 State Hash: 7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069
+          </div>
+        </div>
+
+        <!-- Critical Asset Vulnerability Matrix -->
+        <h3 style="margin-bottom: 8px; font-size: 0.95rem;">⚡ Critical Asset Matrix</h3>
+        <div id="assets-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 12px;"></div>
+
+        <!-- Multilingual Advisories & Audio -->
+        <h3 style="margin-bottom: 8px; font-size: 0.95rem;">📢 Regional Dispatches &amp; Audio</h3>
+        <div class="tab-buttons">
+          <button class="tab-btn active" onclick="switchLang('odia')">🇮🇳 Odia</button>
+          <button class="tab-btn" onclick="switchLang('bengali')">🇮🇳 Bengali</button>
+          <button class="tab-btn" onclick="switchLang('english')">🌐 English</button>
+        </div>
+        <div id="dispatch-text" class="tab-content"></div>
+        <button class="btn-primary" onclick="speakCurrentLang()">🔊 Play Voice Synthesis (Web Speech API)</button>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: FINANCIAL RESILIENCE (FEMA HAZUS-MH) -->
+  <!-- ===================================================================== -->
+  <div id="view-hazus" style="display: none;">
+    <div class="pane" style="margin-bottom: 16px;">
+      <h3 style="font-size: 1.1rem; margin-bottom: 4px;">📊 Pre-Landfall Infrastructure Loss Estimation (FEMA HAZUS-MH)</h3>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+        Deterministic stage-damage curves calibrated for Bay of Bengal coastal infrastructure under saltwater immersion.
+      </p>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-title">Monitored Portfolio Value</div>
+          <div id="hazus-total-val" class="kpi-val" style="color: #38BDF8;">$67,500,000</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Estimated Damage</div>
+          <div id="hazus-total-dmg" class="kpi-val" style="color: #F87171;">$28,450,000</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Portfolio Loss Ratio</div>
+          <div id="hazus-loss-ratio" class="kpi-val" style="color: #FBBF24;">42.1%</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Max Infrastructure Downtime</div>
+          <div id="hazus-downtime" class="kpi-val" style="color: #C084FC;">120 Days</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Severely Damaged Assets</div>
+          <div id="hazus-severe-count" class="kpi-val" style="color: #FB7185;">3 Assets</div>
+        </div>
+      </div>
+
+      <h4 style="margin: 16px 0 8px 0; font-size: 0.95rem;">📋 Asset-by-Asset Physical Damage &amp; Downtime Breakdown</h4>
+      <div style="overflow-x: auto;">
+        <table class="data-table" id="hazus-table">
+          <thead>
+            <tr>
+              <th>Asset Name</th>
+              <th>Type</th>
+              <th>Ground Elev</th>
+              <th>Water Depth</th>
+              <th>Structural Damage</th>
+              <th>Equipment Loss</th>
+              <th>Valuation (USD)</th>
+              <th>Est. Loss (USD)</th>
+              <th>Downtime</th>
+              <th>Damage State</th>
+            </tr>
+          </thead>
+          <tbody id="hazus-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 3: MARINE & ATMOSPHERIC SENSING (INCOIS / IMD) -->
+  <!-- ===================================================================== -->
+  <div id="view-sensing" style="display: none;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+      
+      <!-- INCOIS TIDAL HARMONICS -->
+      <div class="pane">
+        <h3 style="font-size: 1rem; margin-bottom: 6px;">🌊 INCOIS Astronomical Tidal Harmonic Forecast</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+          Calibrated harmonic constituent modeling: <b>M2</b> (28.98°/h), <b>S2</b> (30.00°/h), <b>K1</b> (15.04°/h), <b>O1</b> (13.94°/h)
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+          <div class="kpi-card">
+            <div class="kpi-title">Nearest High Tide</div>
+            <div id="tide-high-val" class="kpi-val" style="color: var(--accent-cyan); font-size: 1.1rem;">+1.42m MSL (3.27m CD)</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Nearest Low Tide</div>
+            <div id="tide-low-val" class="kpi-val" style="color: var(--text-muted); font-size: 1.1rem;">-1.18m MSL (0.67m CD)</div>
+          </div>
+        </div>
+
+        <h4 style="font-size: 0.85rem; margin-bottom: 6px; color: var(--text-muted);">24-Hour Astronomical Tidal Sequence</h4>
+        <div style="overflow-x: auto; max-height: 220px;">
+          <table class="data-table" id="tide-table">
+            <thead>
+              <tr>
+                <th>Hour</th>
+                <th>Tide (MSL)</th>
+                <th>Tide (CD)</th>
+                <th>Rate (m/h)</th>
+                <th>Phase</th>
+              </tr>
+            </thead>
+            <tbody id="tide-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HOLLAND (1980) WIND FIELD PROFILE -->
+      <div class="pane">
+        <h3 style="font-size: 1rem; margin-bottom: 6px;">🌀 Holland (1980) Parametric Wind Profile</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+          Radial velocity decay: Holland B-parameter = <b id="holland-b">1.48</b> | RMW = <b id="holland-rmw">35 km</b>
+        </p>
+
+        <div style="overflow-x: auto; max-height: 280px;">
+          <table class="data-table" id="wind-table">
+            <thead>
+              <tr>
+                <th>Radius from Eye</th>
+                <th>Wind Speed (km/h)</th>
+                <th>Wind Speed (knots)</th>
+                <th>Damage Potential</th>
+              </tr>
+            </thead>
+            <tbody id="wind-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- IMD CYCLONE TRACK TABLE -->
     <div class="pane">
-      <h3 style="margin-bottom: 12px; font-size: 1rem;">🎯 Tactical Telemetry</h3>
-
-      <div class="control-group">
-        <label class="control-label">Coastal Sector</label>
-        <select id="sector-select" onchange="updateModel()">
-          <option value="Paradip_Odisha">Paradip Port &amp; Industrial Hub (Odisha)</option>
-          <option value="Dhamra_Odisha">Dhamra Port &amp; Mangrove Delta (Odisha)</option>
-          <option value="Digha_WestBengal">Digha-Shankarpur Coastal Strip (West Bengal)</option>
-        </select>
+      <h3 style="font-size: 1rem; margin-bottom: 6px;">🛰️ Operational IMD / JTWC Track Waypoints &amp; Landfall Guidance</h3>
+      <div style="overflow-x: auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Timestamp (UTC)</th>
+              <th>Position</th>
+              <th>Central Pressure</th>
+              <th>Max Winds</th>
+              <th>Category</th>
+              <th>Hours to Landfall</th>
+            </tr>
+          </thead>
+          <tbody id="track-tbody"></tbody>
+        </table>
       </div>
-
-      <div class="control-group">
-        <div class="control-label">
-          <span>Central Pressure (P_central)</span>
-          <span id="label-press">940 hPa</span>
-        </div>
-        <input type="range" id="slider-press" min="900" max="1005" value="940" step="1" oninput="updateModel()" />
-      </div>
-
-      <div class="control-group">
-        <div class="control-label">
-          <span>Max Sustained Wind</span>
-          <span id="label-wind">195 km/h</span>
-        </div>
-        <input type="range" id="slider-wind" min="80" max="280" value="195" step="5" oninput="updateModel()" />
-      </div>
-
-      <div class="control-group">
-        <div class="control-label">
-          <span>Astronomical Tide</span>
-          <span id="label-tide">1.5 m</span>
-        </div>
-        <input type="range" id="slider-tide" min="0.0" max="4.0" value="1.5" step="0.1" oninput="updateModel()" />
-      </div>
-
-      <div class="control-group">
-        <div class="control-label">
-          <span>Landfall ETA</span>
-          <span id="label-eta">8 hours</span>
-        </div>
-        <input type="range" id="slider-eta" min="1" max="48" value="8" step="1" oninput="updateModel()" />
-      </div>
-
-      <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 16px 0;" />
-
-      <h3 style="margin-bottom: 10px; font-size: 0.95rem;">♿ Accessibility &amp; Network</h3>
-      
-      <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-        <input type="checkbox" id="cb-colorblind" onchange="toggleColorBlind()" style="width: auto;" />
-        <label for="cb-colorblind" style="font-size: 0.85rem; cursor: pointer;">Color-Blind Safe Mode (WCAG AA)</label>
-      </div>
-
-      <div style="display: flex; gap: 8px; margin-bottom: 14px;">
-        <input type="checkbox" id="cb-fieldmode" onchange="toggleFieldMode()" style="width: auto;" />
-        <label for="cb-fieldmode" style="font-size: 0.85rem; cursor: pointer;">Low-Bandwidth Field Mode (&lt;5KB)</label>
-      </div>
-
-      <button class="btn-primary" onclick="downloadCapXml()">⬇️ Export OASIS CAP v1.2 XML</button>
     </div>
+  </div>
 
-    <!-- CENTER PANE: MAP & EVACUATION CORRIDORS -->
-    <div class="pane" id="map-pane">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <h3 style="font-size: 1rem;">🗺️ Hydrodynamic Inundation &amp; Asset Exposure</h3>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">Blue = Projected Surge Breach</span>
-      </div>
+  <!-- ===================================================================== -->
+  <!-- VIEW 4: DISPATCHES & OASIS CAP V1.2 -->
+  <!-- ===================================================================== -->
+  <div id="view-dispatches" style="display: none;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
       
-      <div id="map"></div>
-
-      <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div style="background: #0F172A; padding: 10px; border-radius: 6px;">
-          <div style="font-size: 0.8rem; font-weight: 700; color: #EF4444;">🔴 Severed Arteries (Breached):</div>
-          <div id="severed-list" style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted);">NH-53 Coastal Expressway</div>
-        </div>
-        <div style="background: #0F172A; padding: 10px; border-radius: 6px;">
-          <div style="font-size: 0.8rem; font-weight: 700; color: #10B981;">🟢 Open High-Ridge Routes:</div>
-          <div id="clear-list" style="font-size: 0.8rem; margin-top: 4px; color: var(--text-muted);">SH-12 Kujang Inland Bypass</div>
-        </div>
+      <div class="pane">
+        <h3 style="font-size: 1rem; margin-bottom: 6px;">📋 Incident Command System Briefing (ICS-201)</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+          Compressed low-bandwidth tactical briefing (&lt;5KB payload) formatted for civil defense field radios and degraded 2G terminals.
+        </p>
+        <textarea id="ics201-text" style="width: 100%; height: 350px; background: #020617; color: #22C55E; font-family: monospace; font-size: 0.82rem; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); resize: none;" readonly></textarea>
+        <button class="btn-primary" style="margin-top: 10px;" onclick="downloadIcs201()">⬇️ Download ICS-201 Text Brief</button>
       </div>
 
-      <!-- Field Mode Terminal View -->
-      <div id="field-mode-view"></div>
-    </div>
-
-    <!-- RIGHT PANE: GEMINI INTELLIGENCE & PARAMETRIC -->
-    <div class="pane">
-      
-      <!-- Parametric Insurance Banner -->
-      <div class="parametric-box">
-        <div style="font-size: 0.75rem; text-transform: uppercase; color: #A5B4FC; font-weight: 700;">
-          ⚡ Parametric Smart Contract Trigger
-        </div>
-        <div id="param-payout" style="font-size: 1.3rem; font-weight: 800; color: #FFF; margin: 4px 0;">
-          Tier 1: 100% Payout ($25,000,000)
-        </div>
-        <div id="param-reason" style="font-size: 0.78rem; color: #C7D2FE;">
-          Surge TWSE >= 3.0m &amp; Wind >= 195 km/h
-        </div>
+      <div class="pane">
+        <h3 style="font-size: 1rem; margin-bottom: 6px;">📡 Machine-Readable OASIS CAP v1.2 XML</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+          Standard Common Alerting Protocol payload for multi-agency automated emergency siren and television/radio broadcast gateways.
+        </p>
+        <textarea id="cap-text" style="width: 100%; height: 350px; background: #020617; color: #60A5FA; font-family: monospace; font-size: 0.82rem; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); resize: none;" readonly></textarea>
+        <button class="btn-primary" style="margin-top: 10px;" onclick="downloadCapXml()">⬇️ Download OASIS CAP v1.2 XML</button>
       </div>
-
-      <!-- Critical Asset Vulnerability Matrix -->
-      <h3 style="margin-bottom: 8px; font-size: 0.95rem;">⚡ Critical Asset Matrix</h3>
-      <div id="assets-list" style="max-height: 230px; overflow-y: auto; margin-bottom: 12px;"></div>
-
-      <!-- Multilingual Advisories & Audio -->
-      <h3 style="margin-bottom: 8px; font-size: 0.95rem;">📢 Regional Dispatches &amp; Audio</h3>
-      <div class="tab-buttons">
-        <button class="tab-btn active" onclick="switchLang('odia')">🇮🇳 Odia</button>
-        <button class="tab-btn" onclick="switchLang('bengali')">🇮🇳 Bengali</button>
-        <button class="tab-btn" onclick="switchLang('english')">🌐 English</button>
-      </div>
-      <div id="dispatch-text" class="tab-content"></div>
-      <button class="btn-primary" onclick="speakCurrentLang()">🔊 Play Voice Synthesis</button>
 
     </div>
-
   </div>
 
   <script>
@@ -392,12 +704,12 @@
 
     // Assets Data
     const ASSETS = [
-      { id: "HOSP_01", name: "Paradip Port Trust Hospital", type: "hospital", lat: 20.292, lon: 86.668, elev: 2.4, crit: "TIER_1" },
-      { id: "SUBST_01", name: "Paradip 220kV Grid Substation", type: "substation", lat: 20.288, lon: 86.654, elev: 1.9, crit: "TIER_1" },
-      { id: "HWY_01", name: "NH-53 Coastal Arterial Highway", type: "highway", lat: 20.295, lon: 86.620, elev: 2.2, crit: "TIER_1" },
-      { id: "PUMP_01", name: "Mahanadi Drainage Pump Complex", type: "pump", lat: 20.272, lon: 86.690, elev: 1.4, crit: "TIER_1" },
-      { id: "SHELTER_01", name: "Paradip Elevated Cyclone Shelter", type: "shelter", lat: 20.301, lon: 86.650, elev: 4.2, crit: "TIER_2" },
-      { id: "HWY_02", name: "SH-12 Kujang Inland High Bypass", type: "highway", lat: 20.320, lon: 86.560, elev: 4.6, crit: "TIER_2" }
+      { id: "HOSP_01", name: "Paradip Port Trust Hospital", type: "hospital", lat: 20.292, lon: 86.668, elev: 2.4, val: 25000000, crit: "TIER_1" },
+      { id: "SUBST_01", name: "Paradip 220kV Grid Substation", type: "substation", lat: 20.288, lon: 86.654, elev: 1.9, val: 18000000, crit: "TIER_1" },
+      { id: "HWY_01", name: "NH-53 Coastal Arterial Highway", type: "highway", lat: 20.295, lon: 86.620, elev: 2.2, val: 12000000, crit: "TIER_1" },
+      { id: "PUMP_01", name: "Mahanadi Drainage Pump Complex", type: "pump", lat: 20.272, lon: 86.690, elev: 1.4, val: 6000000, crit: "TIER_1" },
+      { id: "SHELTER_01", name: "Paradip Elevated Cyclone Shelter", type: "shelter", lat: 20.301, lon: 86.650, elev: 4.2, val: 2500000, crit: "TIER_1" },
+      { id: "HWY_02", name: "SH-12 Kujang Inland High Bypass", type: "highway", lat: 20.320, lon: 86.560, elev: 4.6, val: 5000000, crit: "TIER_2" }
     ];
 
     function initMap() {
@@ -410,6 +722,20 @@
       updateModel();
     }
 
+    function switchMainView(viewId) {
+      document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.getElementById('view-ops').style.display = viewId === 'ops' ? 'block' : 'none';
+      document.getElementById('view-hazus').style.display = viewId === 'hazus' ? 'block' : 'none';
+      document.getElementById('view-sensing').style.display = viewId === 'sensing' ? 'block' : 'none';
+      document.getElementById('view-dispatches').style.display = viewId === 'dispatches' ? 'block' : 'none';
+
+      if (viewId === 'ops' && map) {
+        setTimeout(() => map.invalidateSize(), 150);
+      }
+    }
+
     function calculateSurge(press, wind, tide) {
       const staticSurge = Math.max(0, 1013.25 - press) * 0.0101;
       const dynamicSurge = 0.00002 * Math.pow(wind, 2);
@@ -419,6 +745,35 @@
         dynamic: Number(dynamicSurge.toFixed(2)),
         twse: Number(twse.toFixed(2))
       };
+    }
+
+    // FEMA HAZUS-MH Stage-Damage calculation
+    function computeHazusDamage(assetType, depthM) {
+      if (depthM <= 0.0) return { struct: 0, equip: 0, downtime: 0, state: "NONE" };
+      if (assetType === "substation") {
+        if (depthM <= 0.3) return { struct: 20, equip: 35, downtime: 7, state: "SLIGHT" };
+        if (depthM <= 0.6) return { struct: 45, equip: 65, downtime: 21, state: "MODERATE" };
+        if (depthM <= 1.2) return { struct: 75, equip: 90, downtime: 60, state: "EXTENSIVE" };
+        return { struct: 95, equip: 100, downtime: 120, state: "COMPLETE" };
+      } else if (assetType === "hospital") {
+        if (depthM <= 0.3) return { struct: 8, equip: 15, downtime: 3, state: "SLIGHT" };
+        if (depthM <= 0.8) return { struct: 25, equip: 45, downtime: 14, state: "MODERATE" };
+        if (depthM <= 1.8) return { struct: 55, equip: 75, downtime: 45, state: "EXTENSIVE" };
+        return { struct: 80, equip: 95, downtime: 90, state: "COMPLETE" };
+      } else if (assetType === "highway") {
+        if (depthM <= 0.3) return { struct: 10, equip: 0, downtime: 2, state: "SLIGHT" };
+        if (depthM <= 0.8) return { struct: 35, equip: 0, downtime: 7, state: "MODERATE" };
+        if (depthM <= 1.5) return { struct: 70, equip: 0, downtime: 28, state: "EXTENSIVE" };
+        return { struct: 90, equip: 0, downtime: 60, state: "COMPLETE" };
+      } else if (assetType === "pump") {
+        if (depthM <= 0.4) return { struct: 15, equip: 25, downtime: 5, state: "SLIGHT" };
+        if (depthM <= 1.0) return { struct: 50, equip: 70, downtime: 25, state: "MODERATE" };
+        return { struct: 85, equip: 95, downtime: 75, state: "COMPLETE" };
+      } else {
+        if (depthM <= 0.8) return { struct: 4, equip: 5, downtime: 1, state: "SLIGHT" };
+        if (depthM <= 1.8) return { struct: 18, equip: 25, downtime: 7, state: "MODERATE" };
+        return { struct: 50, equip: 60, downtime: 30, state: "EXTENSIVE" };
+      }
     }
 
     function updateModel() {
@@ -482,8 +837,23 @@
       let severedList = [];
       let clearList = [];
 
+      let totalVal = 0;
+      let totalDmg = 0;
+      let maxDowntime = 0;
+      let severeCount = 0;
+      let hazusRowsHtml = '';
+
       ASSETS.forEach(a => {
-        const delta = twse - a.elev;
+        const delta = Math.max(0, twse - a.elev);
+        const haz = computeHazusDamage(a.type, delta);
+        const compDmgPct = (0.6 * haz.struct) + (0.4 * haz.equip);
+        const assetDmgUsd = Math.round(a.val * (compDmgPct / 100));
+
+        totalVal += a.val;
+        totalDmg += assetDmgUsd;
+        if (haz.downtime > maxDowntime) maxDowntime = haz.downtime;
+        if (compDmgPct >= 50) severeCount++;
+
         let prob = 0.05;
         let color = colorSafe;
         let status = 'Safe';
@@ -493,7 +863,7 @@
           color = colorInundated;
           status = 'Inundated';
           if (a.type === 'highway') severedList.push(a.name);
-        } else if (Math.abs(delta) <= 0.6) {
+        } else if (Math.abs(twse - a.elev) <= 0.6) {
           prob = 0.35;
           color = colorRisk;
           status = 'At Risk';
@@ -508,7 +878,7 @@
           fillColor: color,
           fillOpacity: 0.85,
           weight: 2
-        }).bindPopup(`<b>${a.name}</b><br/>Elevation: ${a.elev}m | TWSE: ${twse}m<br/>Status: <b>${status}</b> (${Math.round(prob*100)}% Breach Prob)`);
+        }).bindPopup(`<b>${a.name}</b><br/>Elevation: ${a.elev}m | TWSE: ${twse}m<br/>Status: <b>${status}</b> (${Math.round(prob*100)}% Breach Prob)<br/>Damage: <b>${haz.state}</b> (${compDmgPct.toFixed(0)}%)`);
         
         markersLayer.addLayer(marker);
 
@@ -518,14 +888,39 @@
               <span>${a.name}</span>
               <span style="color: ${color};">${Math.round(prob*100)}%</span>
             </div>
-            <div class="asset-desc">Elev: ${a.elev}m | Status: ${status}</div>
+            <div class="asset-desc">Elev: ${a.elev}m | Water Depth: ${delta.toFixed(2)}m | ${haz.state} (${haz.downtime}d downtime)</div>
           </div>
+        `;
+
+        const badgeColor = haz.state === 'COMPLETE' ? '#EF4444' : (haz.state === 'EXTENSIVE' ? '#F97316' : (haz.state === 'MODERATE' ? '#FBBF24' : '#10B981'));
+        hazusRowsHtml += `
+          <tr>
+            <td><b>${a.name}</b></td>
+            <td><span style="text-transform: uppercase; font-size: 0.75rem;">${a.type}</span></td>
+            <td>${a.elev}m</td>
+            <td>${delta.toFixed(2)}m</td>
+            <td>${haz.struct}%</td>
+            <td>${haz.equip}%</td>
+            <td>$${a.val.toLocaleString()}</td>
+            <td style="color: #F87171; font-weight: 700;">$${assetDmgUsd.toLocaleString()}</td>
+            <td>${haz.downtime} days</td>
+            <td><span class="badge" style="background: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor};">${haz.state}</span></td>
+          </tr>
         `;
       });
 
       document.getElementById('assets-list').innerHTML = assetsHtml;
       document.getElementById('severed-list').innerText = severedList.length ? severedList.join(', ') : 'None';
       document.getElementById('clear-list').innerText = clearList.length ? clearList.join(', ') : 'SH-12 Kujang Inland Bypass';
+
+      // Update HAZUS Summary
+      document.getElementById('hazus-total-val').innerText = '$' + totalVal.toLocaleString();
+      document.getElementById('hazus-total-dmg').innerText = '$' + totalDmg.toLocaleString();
+      const lossRatio = ((totalDmg / totalVal) * 100).toFixed(1);
+      document.getElementById('hazus-loss-ratio').innerText = lossRatio + '%';
+      document.getElementById('hazus-downtime').innerText = maxDowntime + ' Days';
+      document.getElementById('hazus-severe-count').innerText = severeCount + ' Assets';
+      document.getElementById('hazus-tbody').innerHTML = hazusRowsHtml;
 
       // Surge Polygon Simulation
       if (surgePolygon) map.removeLayer(surgePolygon);
@@ -544,6 +939,97 @@
       }
 
       updateDispatches(twse, wind);
+      updateSensingTables(press, wind, tide, eta);
+      updateBriefs(twse, wind, press, severedList, clearList);
+    }
+
+    function updateSensingTables(press, wind, tide, eta) {
+      // 1. INCOIS Tidal Harmonics
+      let tideRows = '';
+      const M2_amp = 0.88, S2_amp = 0.38, K1_amp = 0.18, O1_amp = 0.09, Z0 = 1.85;
+      for (let h = 0; h < 12; h++) {
+        const radM2 = (28.984 * h - 102.5) * Math.PI / 180;
+        const radS2 = (30.000 * h - 145.0) * Math.PI / 180;
+        const radK1 = (15.041 * h - 315.0) * Math.PI / 180;
+        const radO1 = (13.943 * h - 288.0) * Math.PI / 180;
+        const msl = (M2_amp * Math.cos(radM2)) + (S2_amp * Math.cos(radS2)) + (K1_amp * Math.cos(radK1)) + (O1_amp * Math.cos(radO1));
+        const cd = Z0 + msl;
+        const rate = - (M2_amp * 0.505 * Math.sin(radM2) + S2_amp * 0.523 * Math.sin(radS2));
+        const phase = Math.abs(rate) < 0.05 ? (msl > 0 ? "HIGH TIDE" : "LOW TIDE") : (rate > 0 ? "FLOODING" : "EBBING");
+        
+        tideRows += `
+          <tr>
+            <td>+${h}h</td>
+            <td style="color: #38BDF8;">${msl >= 0 ? '+' : ''}${msl.toFixed(2)}m</td>
+            <td>${cd.toFixed(2)}m</td>
+            <td>${rate.toFixed(2)} m/h</td>
+            <td><span style="font-size:0.75rem; color:${rate > 0 ? '#10B981':'#F59E0B'}">${phase}</span></td>
+          </tr>
+        `;
+      }
+      document.getElementById('tide-tbody').innerHTML = tideRows;
+
+      // 2. Holland Wind Profile
+      const dp = Math.max(1, 1013.25 - press);
+      const rmw = 35;
+      const b = Math.max(1.0, Math.min(2.5, 1.88 - (0.00557 * rmw) + (0.0015 * dp))).toFixed(2);
+      document.getElementById('holland-b').innerText = b;
+      document.getElementById('holland-rmw').innerText = rmw + ' km';
+
+      let windRows = '';
+      const radii = [10, 20, 35, 50, 75, 100, 150, 200];
+      radii.forEach(r => {
+        const ratio = rmw / r;
+        const v = Math.round(wind * Math.pow(ratio, b / 2) * Math.exp(0.5 * (1 - Math.pow(ratio, b))));
+        const knots = Math.round(v * 0.539957);
+        const danger = v > 180 ? 'Catastrophic Structural Shear' : (v > 120 ? 'Roof Peeling & Tree Uprooting' : 'Gale / Flying Debris');
+        windRows += `
+          <tr>
+            <td>${r} km</td>
+            <td style="color: #FBBF24; font-weight:700;">${v} km/h</td>
+            <td>${knots} kts</td>
+            <td style="color: var(--text-muted); font-size: 0.8rem;">${danger}</td>
+          </tr>
+        `;
+      });
+      document.getElementById('wind-tbody').innerHTML = windRows;
+
+      // 3. IMD Cyclone Track
+      const trackRows = `
+        <tr>
+          <td>-18h</td>
+          <td>18.4°N, 87.1°E</td>
+          <td>970 hPa</td>
+          <td>135 km/h</td>
+          <td>Very Severe Cyclonic Storm</td>
+          <td>18.0h</td>
+        </tr>
+        <tr>
+          <td>-12h</td>
+          <td>19.1°N, 86.9°E</td>
+          <td>955 hPa</td>
+          <td>165 km/h</td>
+          <td>Very Severe Cyclonic Storm</td>
+          <td>12.0h</td>
+        </tr>
+        <tr>
+          <td>-6h</td>
+          <td>19.8°N, 86.8°E</td>
+          <td>945 hPa</td>
+          <td>185 km/h</td>
+          <td>Extremely Severe Cyclonic Storm</td>
+          <td>6.0h</td>
+        </tr>
+        <tr style="background: #7F1D1D33; font-weight: 700;">
+          <td>0h (Landfall)</td>
+          <td>20.3°N, 86.6°E</td>
+          <td>${press} hPa</td>
+          <td>${wind} km/h</td>
+          <td>Extremely Severe Cyclonic Storm</td>
+          <td>0.0h</td>
+        </tr>
+      `;
+      document.getElementById('track-tbody').innerHTML = trackRows;
     }
 
     function updateDispatches(twse, wind) {
@@ -553,6 +1039,14 @@
         english: `CRITICAL DISASTER BROADCAST: Severe storm surge of ${twse}m and ${wind} km/h winds forecast for Paradip sector. Mandatory evacuation active for coastal wards.`
       };
       document.getElementById('dispatch-text').innerText = dispatches[currentLang];
+    }
+
+    function updateBriefs(twse, wind, press, severed, clear) {
+      const ics = `=== INCIDENT COMMAND SYSTEM BRIEFING (ICS-201) ===\nINCIDENT NAME: CYCLONE AGNI PRE-LANDFALL OPS\nDATE/TIME: ${new Date().toISOString()}\nOPERATIONAL SECTOR: Paradip Port Coastal Sector (Odisha)\n\n1. CURRENT METEOROLOGICAL TELEMETRY:\n- Central Pressure: ${press} hPa\n- Maximum Sustained Winds: ${wind} km/h (Category: ESCS)\n- Total Water Surface Elevation (TWSE): ${twse}m\n\n2. TRANSPORTATION & EVACUATION CORRIDORS:\n- SEVERED (Inundated): ${severed.length ? severed.join(', ') : 'None'}\n- OPEN HIGH-RIDGE: ${clear.length ? clear.join(', ') : 'SH-12 Kujang Bypass'}\n\n3. SECOND-ORDER CASCADE VULNERABILITY (GEMINI 3.7 FLASH):\n- Surge breach cut off NH-53 fuel convoys\n- 220kV Grid Substation at risk of saltwater switchgear short\n- Port Trust Hospital diesel generator replenishment compromised\n- Mandatory pre-positioning of trailer generators at elevated shelter\n\n4. PARAMETRIC INSURANCE LIQUIDITY STATUS:\n- State Hash: SHA256-AUTHENTICATED-TRIGGER\n- Underwriter Payout: 100% TIER-1 ($25,000,000 Disbursement Authorized)\n=================================================`;
+      document.getElementById('ics201-text').value = ics;
+
+      const xml = `<?xml version="1.0" encoding="utf-8"?>\n<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">\n  <identifier>AEGIS-CAP-${Date.now()}</identifier>\n  <sender>ops@aegis-cyclone.gov.in</sender>\n  <sent>${new Date().toISOString()}</sent>\n  <status>Actual</status>\n  <msgType>Alert</msgType>\n  <scope>Public</scope>\n  <info>\n    <category>Met</category>\n    <event>Severe Storm Surge &amp; Cyclone Breach</event>\n    <urgency>Immediate</urgency>\n    <severity>Extreme</severity>\n    <certainty>Observed</certainty>\n    <headline>Aegis-Cyclone Pre-Landfall Inundation Warning</headline>\n    <description>Anticipatory storm surge elevation ${twse}m and winds ${wind} km/h projected.</description>\n    <area>\n      <areaDesc>Paradip Port &amp; Jagatsinghpur Coastal Corridor</areaDesc>\n      <circle>20.292,86.668,25.0</circle>\n    </area>\n  </info>\n</alert>`;
+      document.getElementById('cap-text').value = xml;
     }
 
     function switchLang(lang) {
@@ -592,7 +1086,7 @@
       if (isFieldMode) {
         mapEl.style.display = 'none';
         fieldEl.style.display = 'block';
-        fieldEl.innerText = `=== AEGIS-CYCLONE FIELD DISPATCH (<5KB) ===\nPOSTURE: RED\nTWSE: ${document.getElementById('kpi-twse').innerText}\nWIND: ${document.getElementById('kpi-wind').innerText}\nSEVERED: ${document.getElementById('severed-list').innerText}\nCLEAR: ${document.getElementById('clear-list').innerText}\nODIA: ${document.getElementById('dispatch-text').innerText}\n=== TRANSMISSION VERIFIED ===`;
+        fieldEl.innerText = document.getElementById('ics201-text').value;
       } else {
         mapEl.style.display = 'block';
         fieldEl.style.display = 'none';
@@ -600,12 +1094,22 @@
     }
 
     function downloadCapXml() {
-      const xml = `<?xml version="1.0" encoding="utf-8"?>\n<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">\n  <identifier>AEGIS-CAP-${Date.now()}</identifier>\n  <sender>ops@aegis-cyclone.gov.in</sender>\n  <sent>${new Date().toISOString()}</sent>\n  <status>Actual</status>\n  <msgType>Alert</msgType>\n  <scope>Public</scope>\n  <info>\n    <category>Met</category>\n    <event>Severe Cyclone Storm Surge Threat</event>\n    <urgency>Immediate</urgency>\n    <severity>Extreme</severity>\n    <certainty>Observed</certainty>\n    <headline>Aegis-Cyclone Pre-Landfall Inundation Warning</headline>\n    <area><areaDesc>Paradip Coastal Zone</areaDesc></area>\n  </info>\n</alert>`;
+      const xml = document.getElementById('cap-text').value;
       const blob = new Blob([xml], { type: 'application/xml' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `AEGIS_CAP_${Date.now()}.xml`;
+      a.click();
+    }
+
+    function downloadIcs201() {
+      const text = document.getElementById('ics201-text').value;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ICS201_DISPATCH_${Date.now()}.txt`;
       a.click();
     }
 

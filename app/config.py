@@ -53,7 +53,7 @@ class Settings(BaseSettings):
         "https://overpass.kumi.systems/api/interpreter",
         "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
     ]
-    OVERPASS_TIMEOUT_SECONDS: int = 25
+    OVERPASS_TIMEOUT_SECONDS: int = 6
 
     # Hydrodynamic & Physics Parameters
     STANDARD_ATMOSPHERIC_PRESSURE_HPA: float = 1013.25

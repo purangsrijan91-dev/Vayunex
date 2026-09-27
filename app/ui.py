@@ -15,6 +15,12 @@ from streamlit_folium import st_folium
 from app.config import settings
 from app.core.gee_engine import InundationResult, run_inundation_model
 from app.core.gemini_brain import reason_cyclone_impact
+from app.core.hazus_engine import estimate_infrastructure_losses, PortfolioLossSummary
+from app.core.incois_engine import (
+    compute_holland_wind_field,
+    generate_tidal_forecast,
+    get_active_cyclone_track
+)
 from app.core.osm_engine import extract_critical_infrastructure
 from app.schemas.alerts import AssetBreach, IncidentCommandSOP, ThreatPosture
 from app.schemas.assets import AssetType, CriticalAsset
@@ -303,165 +309,309 @@ if low_bandwidth_mode:
         )
 
 else:
-    # Standard Full Operations Center View
-    col_map, col_intel = st.columns([1.1, 0.9])
+    # Standard Full Operations Center View with Modular Tabs
+    tab_ops, tab_hazus, tab_sensing, tab_broadcast = st.tabs([
+        "🗺️ Geospatial & Cascade Ops",
+        "📊 Financial Resilience (FEMA HAZUS-MH)",
+        "🌊 Ocean & Atmospheric Sensing (INCOIS / IMD)",
+        "📻 Emergency Dispatches & CAP v1.2"
+    ])
 
-    # --------------------------------------------------------------------------
-    # CENTER COLUMN: SATELLITE MAP & EXPOSURE OVERLAY
-    # --------------------------------------------------------------------------
-    with col_map:
-        st.markdown("### 🗺️ Geospatial Inundation & Asset Vulnerability")
+    # ==========================================================================
+    # TAB 1: GEOSPATIAL & CASCADE OPS
+    # ==========================================================================
+    with tab_ops:
+        col_map, col_intel = st.columns([1.1, 0.9])
 
-        sector_info = settings.COASTAL_SECTORS.get(sector_choice, settings.COASTAL_SECTORS["Paradip_Odisha"])
-        center_lat, center_lon = sector_info["center"]
-        min_lat, min_lon, max_lat, max_lon = sector_info["bbox"]
+        # ----------------------------------------------------------------------
+        # LEFT COLUMN: SATELLITE MAP & EXPOSURE OVERLAY
+        # ----------------------------------------------------------------------
+        with col_map:
+            st.markdown("### 🗺️ Geospatial Inundation & Asset Vulnerability")
 
-        # Color palette selection (Standard vs Color-Blind Safe)
-        if color_blind_mode:
-            COLOR_SAFE = "#56B4E9"       # Sky Blue
-            COLOR_AT_RISK = "#F0E442"    # Yellow
-            COLOR_INUNDATED = "#D55E00"  # Vermilion
-        else:
-            COLOR_SAFE = "#10B981"       # Green
-            COLOR_AT_RISK = "#F59E0B"    # Amber
-            COLOR_INUNDATED = "#EF4444"  # Red
+            sector_info = settings.COASTAL_SECTORS.get(sector_choice, settings.COASTAL_SECTORS["Paradip_Odisha"])
+            center_lat, center_lon = sector_info["center"]
+            min_lat, min_lon, max_lat, max_lon = sector_info["bbox"]
 
-        # Initialize Folium Map
-        m = folium.Map(
-            location=[center_lat, center_lon],
-            zoom_start=11,
-            tiles="CartoDB dark_matter",
-            control_scale=True
-        )
-
-        # Inundation Raster Overlay
-        # Encode png to base64 data url for ImageOverlay
-        img_b64 = inundation.image_base64
-        data_url = f"data:image/png;base64,{img_b64}"
-        
-        folium.raster_layers.ImageOverlay(
-            image=data_url,
-            bounds=[[min_lat, min_lon], [max_lat, max_lon]],
-            opacity=0.65,
-            name="Storm Surge Inundation Raster"
-        ).add_to(m)
-
-        # Map Asset Breach Lookup
-        breach_map = {b.asset_id: b for b in sop.asset_breaches}
-
-        # Vector Asset Markers
-        for asset in assets:
-            b_info = breach_map.get(asset.asset_id)
-            prob = b_info.breach_probability if b_info else 0.0
-
-            if prob >= 0.5:
-                marker_color = COLOR_INUNDATED
-                status_label = "INUNDATION BREACH (>50%)"
-            elif prob >= 0.25:
-                marker_color = COLOR_AT_RISK
-                status_label = "AT-RISK / SURGE REACH"
+            # Color palette selection (Standard vs Color-Blind Safe)
+            if color_blind_mode:
+                COLOR_SAFE = "#56B4E9"       # Sky Blue
+                COLOR_AT_RISK = "#F0E442"    # Yellow
+                COLOR_INUNDATED = "#D55E00"  # Vermilion
             else:
-                marker_color = COLOR_SAFE
-                status_label = "SAFE (HIGH ELEVATION)"
+                COLOR_SAFE = "#10B981"       # Green
+                COLOR_AT_RISK = "#F59E0B"    # Amber
+                COLOR_INUNDATED = "#EF4444"  # Red
 
-            icon_type = "plus" if asset.asset_type == AssetType.HOSPITAL else ("bolt" if asset.asset_type == AssetType.SUBSTATION else "road")
+            # Initialize Folium Map
+            m = folium.Map(
+                location=[center_lat, center_lon],
+                zoom_start=11,
+                tiles="CartoDB dark_matter",
+                control_scale=True
+            )
 
-            popup_html = f"""
-            <div style="font-family: sans-serif; font-size: 12px; width: 230px;">
-                <b>{asset.name}</b><br/>
-                <b>Type:</b> {asset.asset_type.value.upper()} | <b>Tier:</b> {asset.criticality.value}<br/>
-                <b>Elevation:</b> {asset.elevation_m}m | <b>TWSE:</b> {inundation.twse_m}m<br/>
-                <b>Status:</b> <span style="color:{marker_color}; font-weight:bold;">{status_label}</span><br/>
-                <b>Breach Prob:</b> {int(prob*100)}%<br/>
-                <b>Cascade:</b> {b_info.cascade_risk if b_info else 'N/A'}<br/>
-                <b>Action:</b> {b_info.mitigation_action if b_info else 'N/A'}
-            </div>
-            """
+            # Inundation Raster Overlay
+            img_b64 = inundation.image_base64
+            data_url = f"data:image/png;base64,{img_b64}"
 
-            folium.CircleMarker(
-                location=[asset.latitude, asset.longitude],
-                radius=8,
-                color=marker_color,
-                fill=True,
-                fill_color=marker_color,
-                fill_opacity=0.85,
-                weight=2,
-                popup=folium.Popup(popup_html, max_width=260),
-                tooltip=f"{asset.name} ({status_label})"
+            folium.raster_layers.ImageOverlay(
+                image=data_url,
+                bounds=[[min_lat, min_lon], [max_lat, max_lon]],
+                opacity=0.65,
+                name="Storm Surge Inundation Raster"
             ).add_to(m)
 
-        # Render Map in Streamlit
-        st_folium(m, width=None, height=520)
+            # Map Asset Breach Lookup
+            breach_map = {b.asset_id: b for b in sop.asset_breaches}
 
-        # Transport & Evacuation Status Pill Box
-        st.markdown("#### 🛣️ Evacuation Corridor Triage")
-        corridor = sop.evacuation_corridor_status
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            st.markdown(f"**Severed Routes ({len(corridor.severed_routes)}):**")
-            for r in corridor.severed_routes:
-                st.markdown(f"🔴 `{r}`")
-        with col_c2:
-            st.markdown(f"**Open High-Ridge Corridors ({len(corridor.clear_routes)}):**")
-            for r in corridor.clear_routes:
-                st.markdown(f"🟢 `{r}`")
+            # Vector Asset Markers
+            for asset in assets:
+                b_info = breach_map.get(asset.asset_id)
+                prob = b_info.breach_probability if b_info else 0.0
 
-    # --------------------------------------------------------------------------
-    # RIGHT COLUMN: GEMINI 3.7 FLASH INTELLIGENCE & PARAMETRIC FEED
-    # --------------------------------------------------------------------------
-    with col_intel:
-        st.markdown("### 🧠 Gemini 3.7 Flash Cascade Intelligence")
+                if prob >= 0.5:
+                    marker_color = COLOR_INUNDATED
+                    status_label = "INUNDATION BREACH (>50%)"
+                elif prob >= 0.25:
+                    marker_color = COLOR_AT_RISK
+                    status_label = "AT-RISK / SURGE REACH"
+                else:
+                    marker_color = COLOR_SAFE
+                    status_label = "SAFE (HIGH ELEVATION)"
 
-        # Parametric Insurance Banner
-        param = sop.parametric_insurance
-        if param.trigger_status:
+                popup_html = f"""
+                <div style="font-family: sans-serif; font-size: 12px; width: 230px;">
+                    <b>{asset.name}</b><br/>
+                    <b>Type:</b> {asset.asset_type.value.upper()} | <b>Tier:</b> {asset.criticality.value}<br/>
+                    <b>Elevation:</b> {asset.elevation_m}m | <b>TWSE:</b> {inundation.twse_m}m<br/>
+                    <b>Status:</b> <span style="color:{marker_color}; font-weight:bold;">{status_label}</span><br/>
+                    <b>Breach Prob:</b> {int(prob*100)}%<br/>
+                    <b>Cascade:</b> {b_info.cascade_risk if b_info else 'N/A'}<br/>
+                    <b>Action:</b> {b_info.mitigation_action if b_info else 'N/A'}
+                </div>
+                """
+
+                folium.CircleMarker(
+                    location=[asset.latitude, asset.longitude],
+                    radius=8,
+                    color=marker_color,
+                    fill=True,
+                    fill_color=marker_color,
+                    fill_opacity=0.85,
+                    weight=2,
+                    popup=folium.Popup(popup_html, max_width=260),
+                    tooltip=f"{asset.name} ({status_label})"
+                ).add_to(m)
+
+            # Render Map in Streamlit
+            st_folium(m, width=None, height=520)
+
+            # Transport & Evacuation Status Pill Box
+            st.markdown("#### 🛣️ Evacuation Corridor Triage")
+            corridor = sop.evacuation_corridor_status
+            col_c1, col_c2 = st.columns(2)
+            with col_c1:
+                st.markdown(f"**Severed Routes ({len(corridor.severed_routes)}):**")
+                for r in corridor.severed_routes:
+                    st.markdown(f"🔴 `{r}`")
+            with col_c2:
+                st.markdown(f"**Open High-Ridge Corridors ({len(corridor.clear_routes)}):**")
+                for r in corridor.clear_routes:
+                    st.markdown(f"🟢 `{r}`")
+
+        # ----------------------------------------------------------------------
+        # RIGHT COLUMN: GEMINI 3.7 FLASH INTELLIGENCE & CASCADE FEED
+        # ----------------------------------------------------------------------
+        with col_intel:
+            st.markdown("### 🧠 Gemini 3.7 Flash Cascade Intelligence")
+
+            # Parametric Insurance Banner
+            param = sop.parametric_insurance
+            if param.trigger_status:
+                st.markdown(f"""
+                <div class="parametric-banner">
+                    <div style="font-size: 0.8rem; text-transform: uppercase; color: #A5B4FC; font-weight:700;">
+                        ⚡ Automated Parametric Liquidity Trigger: ACTIVATED
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #FFFFFF; margin: 4px 0;">
+                        Payout Tier: {param.payout_tier_percent}%
+                    </div>
+                    <div style="font-size: 0.85rem; color: #C7D2FE;">
+                        <b>Trigger Metric:</b> {param.triggered_metric}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                with st.expander("💳 Pre-Landfall Disbursement Routing Breakdown"):
+                    for wallet, amount in param.disbursement_routing.items():
+                        st.write(f"• **{wallet.replace('_', ' ')}:** `{amount}`")
+                    if param.settlement_proof_hash:
+                        st.caption(f"SHA-256 State Seal: `{param.settlement_proof_hash}`")
+            else:
+                st.info("ℹ️ Parametric Trigger Standby: Empirical telemetry currently below insurance trigger thresholds.")
+
+            # Visual Cascade Failure Topology Diagram
             st.markdown(f"""
-            <div class="parametric-banner">
-                <div style="font-size: 0.8rem; text-transform: uppercase; color: #A5B4FC; font-weight:700;">
-                    ⚡ Automated Parametric Liquidity Trigger: ACTIVATED
+            <div style="background:#0F172A; border:1px solid #334155; border-radius:8px; padding:12px 14px; margin:10px 0;">
+                <div style="font-weight:700; color:#38BDF8; font-size:0.8rem; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em;">
+                    ⚡ Second-Order Cascade Failure Chain
                 </div>
-                <div style="font-size: 1.5rem; font-weight: 800; color: #FFFFFF; margin: 4px 0;">
-                    Payout Tier: {param.payout_tier_percent}%
-                </div>
-                <div style="font-size: 0.85rem; color: #C7D2FE;">
-                    <b>Trigger Metric:</b> {param.triggered_metric}
+                <div style="display:flex; flex-direction:column; gap:6px; font-family:ui-monospace,monospace; font-size:0.8rem;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span style="background:#7F1D1D; color:#FECACA; padding:2px 7px; border-radius:4px; font-weight:600;">Surge ({inundation.twse_m}m)</span>
+                        <span style="color:#94A3B8;">──►</span>
+                        <span style="background:#78350F; color:#FEF3C7; padding:2px 7px; border-radius:4px; font-weight:600;">Road Severed</span>
+                        <span style="color:#94A3B8;">──►</span>
+                        <span style="background:#713F12; color:#FEF9C3; padding:2px 7px; border-radius:4px; font-weight:600;">Fuel Convoy Halted</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-left:14px;">
+                        <span style="color:#94A3B8;">└──►</span>
+                        <span style="background:#4C1D95; color:#DDD6FE; padding:2px 7px; border-radius:4px; font-weight:600;">220kV Grid Substation Tripped</span>
+                        <span style="color:#94A3B8;">──►</span>
+                        <span style="background:#831843; color:#FCE7F3; padding:2px 7px; border-radius:4px; font-weight:600;">Hospital Diesel Dies</span>
+                        <span style="color:#94A3B8;">──►</span>
+                        <span style="background:#500724; border:1px solid #F43F5E; color:#FFE4E6; padding:2px 7px; border-radius:4px; font-weight:700;">ICU O2 Failure</span>
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            with st.expander("💳 Pre-Landfall Disbursement Routing Breakdown"):
-                for wallet, amount in param.disbursement_routing.items():
-                    st.write(f"• **{wallet.replace('_', ' ')}:** `{amount}`")
-                if param.settlement_proof_hash:
-                    st.caption(f"SHA-256 State Seal: `{param.settlement_proof_hash}`")
-        else:
-            st.info("ℹ️ Parametric Trigger Standby: Empirical telemetry currently below insurance trigger thresholds.")
 
-        # Chain-of-Thought Rationale Summary
-        if sop.chain_of_thought_summary:
-            with st.expander("🧐 Deliberate Thinking & Spatial Graph Rationale", expanded=True):
-                st.markdown(f"*{sop.chain_of_thought_summary}*")
+            # Chain-of-Thought Rationale Summary
+            if sop.chain_of_thought_summary:
+                with st.expander("🧐 Deliberate Thinking & Spatial Graph Rationale", expanded=True):
+                    st.markdown(f"*{sop.chain_of_thought_summary}*")
 
-        # Critical Asset Breaches Accordion
-        st.markdown("#### ⚡ Critical Asset Vulnerability Matrix")
-        for b in sop.asset_breaches:
-            flag_emoji = "🚨" if b.breach_probability >= 0.5 else "⚠️"
-            with st.expander(f"{flag_emoji} {b.asset_name} ({int(b.breach_probability*100)}% Breach Prob)"):
-                st.write(f"• **Elevation:** {b.elevation_m}m | **Time to Cutoff:** {b.time_to_cutoff_hours} hours")
-                st.markdown(f"""
-                <div class="cascade-box">
-                    <b>Cascade Risk:</b> {b.cascade_risk}<br/>
-                    <b>Mitigation Action:</b> {b.mitigation_action}
-                </div>
-                """, unsafe_allow_html=True)
+            # Critical Asset Breaches Accordion
+            st.markdown("#### ⚡ Critical Asset Vulnerability Matrix")
+            for b in sop.asset_breaches:
+                flag_emoji = "🚨" if b.breach_probability >= 0.5 else "⚠️"
+                with st.expander(f"{flag_emoji} {b.asset_name} ({int(b.breach_probability*100)}% Breach Prob)"):
+                    st.write(f"• **Elevation:** {b.elevation_m}m | **Time to Cutoff:** {b.time_to_cutoff_hours} hours")
+                    st.markdown(f"""
+                    <div class="cascade-box">
+                        <b>Cascade Risk:</b> {b.cascade_risk}<br/>
+                        <b>Mitigation Action:</b> {b.mitigation_action}
+                    </div>
+                    """, unsafe_allow_html=True)
 
-        # Vernacular Dispatches & Web Speech Audio Synthesis
-        st.markdown("#### 📢 Multilingual Emergency Broadcasts")
-        tabs = st.tabs(["🇮🇳 Odia", "🇮🇳 Bengali", "🌐 English"])
-        
-        with tabs[0]:
+    # ==========================================================================
+    # TAB 2: FINANCIAL RESILIENCE (FEMA HAZUS-MH)
+    # ==========================================================================
+    with tab_hazus:
+        st.markdown("### 📊 Pre-Landfall Infrastructure Loss Estimation (FEMA HAZUS-MH)")
+        st.caption("Quantitative physical damage modeling calibrated for Bay of Bengal coastal infrastructure under storm surge immersion.")
+
+        loss_report: PortfolioLossSummary = estimate_infrastructure_losses(assets, inundation.twse_m)
+
+        hl_col1, hl_col2, hl_col3, hl_col4, hl_col5 = st.columns(5)
+        with hl_col1:
+            st.metric("Total Portfolio Value", f"${loss_report.total_portfolio_value_usd:,.0f}")
+        with hl_col2:
+            st.metric("Estimated Damage", f"${loss_report.total_estimated_damage_usd:,.0f}")
+        with hl_col3:
+            st.metric("Portfolio Loss Ratio", f"{loss_report.portfolio_loss_ratio_percent}%")
+        with hl_col4:
+            st.metric("Max Downtime", f"{loss_report.critical_infrastructure_downtime_days_max} Days")
+        with hl_col5:
+            st.metric("Severe Damage (>50%)", f"{loss_report.assets_severely_damaged_count} Assets")
+
+        st.markdown("#### 📋 Asset-by-Asset Physical Damage & Downtime Breakdown")
+        table_rows = []
+        for a in loss_report.asset_loss_breakdown:
+            table_rows.append({
+                "Asset Name": a.asset_name,
+                "Type": a.asset_type.upper(),
+                "Ground Elev (m)": a.ground_elevation_m,
+                "Water Depth (m)": a.water_depth_above_ground_m,
+                "Structural Damage": f"{a.structural_damage_percent}%",
+                "Equipment Loss": f"{a.equipment_loss_percent}%",
+                "Asset Value": f"${a.baseline_replacement_value_usd:,.0f}",
+                "Estimated Loss": f"${a.estimated_damage_usd:,.0f}",
+                "Downtime": f"{a.estimated_downtime_days} days",
+                "Damage State": a.damage_state
+            })
+        st.dataframe(table_rows, use_container_width=True)
+
+        st.markdown("#### 🔬 HAZUS-MH Depth-Damage Vulnerability Curves")
+        st.markdown("""
+        - **Electrical Substations:** High fragility to saltwater immersion. 0.3m depth causes 35% equipment loss; >1.2m causes 90%+ switchgear failure and ~60-120 days downtime.
+        - **Trauma Hospitals:** Vulnerable ground floor emergency power generators, diagnostic scanners, and liquid oxygen evaporators.
+        - **Arterial Highways:** Embankment scour and asphalt peeling initiated above 0.3m flow depth, severing vehicle passage.
+        - **Cyclone Shelters:** Stilted concrete reinforced structures designed to withstand up to 1.8m surge with <20% structural impact.
+        """)
+
+    # ==========================================================================
+    # TAB 3: MARINE & ATMOSPHERIC SENSING (INCOIS / IMD)
+    # ==========================================================================
+    with tab_sensing:
+        st.markdown("### 🌊 Marine & Atmospheric Sensing Center")
+        st.caption("Coupled INCOIS astronomical tidal harmonics and IMD/JTWC parametric cyclone tracking.")
+
+        sens_col1, sens_col2 = st.columns(2)
+
+        with sens_col1:
+            st.markdown("#### 🌊 INCOIS Astronomical Tidal Harmonic Forecast")
+            tidal_data = generate_tidal_forecast(telemetry.coastal_sector, hours=24)
+
+            st.write(f"**Observatory:** {tidal_data.station_name}")
+            st.write(f"**Tidal Regime:** {tidal_data.regime} (Form Factor: `{tidal_data.form_factor}`)")
+            st.write(f"**Astronomical Phase:** `{tidal_data.spring_neap_phase}`")
+
+            t_colA, t_colB = st.columns(2)
+            with t_colA:
+                st.metric("Nearest High Tide", f"+{tidal_data.nearest_high_tide.tide_height_above_msl_m}m MSL", f"{tidal_data.nearest_high_tide.tide_height_above_cd_m}m CD")
+            with t_colB:
+                st.metric("Nearest Low Tide", f"{tidal_data.nearest_low_tide.tide_height_above_msl_m}m MSL", f"{tidal_data.nearest_low_tide.tide_height_above_cd_m}m CD")
+
+            tide_chart_data = {
+                "Hour": [f"+{i}h" for i in range(len(tidal_data.hourly_curve_24h))],
+                "Tide Height MSL (m)": [p.tide_height_above_msl_m for p in tidal_data.hourly_curve_24h]
+            }
+            st.line_chart(tide_chart_data, x="Hour", y="Tide Height MSL (m)")
+
+        with sens_col2:
+            st.markdown("#### 🌀 Holland (1980) Parametric Wind Field Profile")
+            holland = compute_holland_wind_field(telemetry.central_pressure_hpa, telemetry.radius_max_winds_km)
+
+            st.write(f"**Holland B-Parameter:** `{holland.holland_b_parameter}`")
+            st.write(f"**Max Gradient Wind:** `{holland.max_gradient_wind_kmh} km/h` at RMW ({holland.radius_max_winds_km} km)")
+
+            wind_chart_data = {
+                "Radius (km)": [p["radius_km"] for p in holland.radial_wind_profile],
+                "Wind Speed (km/h)": [p["wind_speed_kmh"] for p in holland.radial_wind_profile]
+            }
+            st.line_chart(wind_chart_data, x="Radius (km)", y="Wind Speed (km/h)")
+
+        st.markdown("#### 🛰️ Operational IMD / JTWC Track Waypoints & Landfall Guidance")
+        track_data = get_active_cyclone_track(telemetry.storm_id, telemetry.coastal_sector, telemetry.landfall_eta_hours)
+        st.write(f"**Storm Identification:** `{track_data.storm_name}` | **Translation Speed:** `{track_data.current_translation_speed_kmh} km/h` | **Bearing:** `{track_data.current_bearing_deg}°`")
+
+        waypoint_rows = []
+        for wp in track_data.waypoints:
+            waypoint_rows.append({
+                "Timestamp (UTC)": wp.timestamp,
+                "Position": f"{wp.latitude}°N, {wp.longitude}°E",
+                "Pressure (hPa)": wp.central_pressure_hpa,
+                "Max Wind (km/h)": wp.max_wind_speed_kmh,
+                "RMW (km)": wp.radius_max_winds_km,
+                "Category": wp.category,
+                "Hours to Landfall": f"{wp.hours_to_landfall}h"
+            })
+        st.dataframe(waypoint_rows, use_container_width=True)
+
+    # ==========================================================================
+    # TAB 4: EMERGENCY DISPATCHES & CAP V1.2
+    # ==========================================================================
+    with tab_broadcast:
+        st.markdown("### 📻 Civil Defense Dispatches & Alert Broadcasting")
+
+        # Multilingual Voice Dispatches
+        st.markdown("#### 📢 Multilingual Voice & SMS Dispatches")
+        vtabs = st.tabs(["🇮🇳 Odia", "🇮🇳 Bengali", "🌐 English"])
+
+        with vtabs[0]:
             odia_text = sop.vernacular_dispatches.odia
             st.write(odia_text)
-            # Browser-native Web Speech API audio synthesis
             odia_escaped = html.escape(odia_text).replace("'", "\\'")
             st.components.v1.html(f"""
             <button onclick="speakOdia()" style="background:#0F766E; color:#FFFFFF; border:none; padding:6px 14px; border-radius:6px; font-weight:600; cursor:pointer;">
@@ -481,7 +631,7 @@ else:
             </script>
             """, height=45)
 
-        with tabs[1]:
+        with vtabs[1]:
             bengali_text = sop.vernacular_dispatches.bengali
             st.write(bengali_text)
             bengali_escaped = html.escape(bengali_text).replace("'", "\\'")
@@ -503,7 +653,7 @@ else:
             </script>
             """, height=45)
 
-        with tabs[2]:
+        with vtabs[2]:
             eng_text = sop.vernacular_dispatches.english
             st.write(eng_text)
             eng_escaped = html.escape(eng_text).replace("'", "\\'")
@@ -524,3 +674,27 @@ else:
             }}
             </script>
             """, height=45)
+
+        st.divider()
+
+        bcol1, bcol2 = st.columns(2)
+        with bcol1:
+            st.markdown("#### 📋 Tactical Incident Command Briefing (ICS-201)")
+            st.text_area("ICS-201 Terminal Briefing (<5KB)", value=sop.to_ics201_summary(), height=320)
+            st.download_button(
+                "⬇️ Download ICS-201 Text Dispatch",
+                data=sop.to_ics201_summary(),
+                file_name=f"ICS201_{telemetry.storm_id}.txt",
+                mime="text/plain"
+            )
+
+        with bcol2:
+            st.markdown("#### 📡 OASIS CAP v1.2 Standard Alert XML")
+            st.text_area("CAP v1.2 XML Document", value=sop.cap_alert_xml, height=320)
+            st.download_button(
+                "⬇️ Download OASIS CAP v1.2 XML",
+                data=sop.cap_alert_xml,
+                file_name=f"CAP_v12_{telemetry.storm_id}.xml",
+                mime="application/xml"
+            )
+

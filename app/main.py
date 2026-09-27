@@ -14,6 +14,16 @@ from fastapi.responses import PlainTextResponse
 from app.config import settings
 from app.core.gee_engine import run_inundation_model
 from app.core.gemini_brain import reason_cyclone_impact
+from app.core.hazus_engine import estimate_infrastructure_losses, PortfolioLossSummary
+from app.core.incois_engine import (
+    generate_tidal_forecast,
+    predict_astronomical_tide_at,
+    get_active_cyclone_track,
+    compute_holland_wind_field,
+    TidalForecastSummary,
+    CycloneTrackForecast,
+    HollandWindProfile
+)
 from app.core.osm_engine import extract_critical_infrastructure
 from app.core.parametric_engine import generate_audit_receipt, ParametricAuditReceipt
 from app.schemas.alerts import IncidentCommandSOP
@@ -217,3 +227,53 @@ def get_low_bandwidth_field_dispatch(
     sop = reason_cyclone_impact(telemetry, inundation, assets)
 
     return sop.to_ics201_summary()
+
+
+@app.get("/api/v1/sensing/tide", response_model=TidalForecastSummary)
+def get_tidal_harmonic_forecast(sector: str = "Paradip_Odisha", hours: int = 24):
+    """Predict astronomical tide levels using INCOIS harmonic constituent modeling (M2, S2, K1, O1)."""
+    return generate_tidal_forecast(station_key=sector, hours=hours)
+
+
+@app.get("/api/v1/sensing/track", response_model=CycloneTrackForecast)
+def get_cyclone_track(
+    storm_id: str = "AGNI-2026-05B",
+    sector: str = "Paradip_Odisha",
+    hours_to_landfall: float = 6.0
+):
+    """Retrieve operational IMD/JTWC cyclone trajectory and forward landfall extrapolation."""
+    return get_active_cyclone_track(
+        storm_id=storm_id,
+        sector_key=sector,
+        hours_to_landfall=hours_to_landfall
+    )
+
+
+@app.get("/api/v1/sensing/wind-profile", response_model=HollandWindProfile)
+def get_holland_wind_profile(
+    pressure: float = 940.0,
+    rmw: float = 35.0,
+    lat: float = 20.0
+):
+    """Compute Holland (1980) parametric cyclone wind field and radial velocity decay."""
+    return compute_holland_wind_field(
+        central_pressure_hpa=pressure,
+        radius_max_winds_km=rmw,
+        latitude_deg=lat
+    )
+
+
+@app.post("/api/v1/financial/loss-report", response_model=PortfolioLossSummary)
+def generate_financial_loss_report(
+    telemetry: CycloneTelemetry,
+    current_role: AegisRole = Depends(require_roles([
+        AegisRole.DISASTER_COMMANDER,
+        AegisRole.INSURANCE_UNDERWRITER
+    ]))
+):
+    """Pre-landfall quantitative infrastructure loss estimation report based on FEMA HAZUS-MH depth-damage curves."""
+    inundation = run_inundation_model(telemetry)
+    assets = extract_critical_infrastructure(telemetry.coastal_sector)
+    report = estimate_infrastructure_losses(assets, inundation.twse_m)
+    return report
+
