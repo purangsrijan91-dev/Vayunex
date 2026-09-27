@@ -1,0 +1,251 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "source": "Aegis-Cyclone Spatial Asset Registry (OSM & SDMA Reconciled)",
+    "crs": "EPSG:4326 (WGS84)",
+    "dem_source": "MERIT Hydro 90m / NASADEM High Resolution",
+    "updated_at": "2026-09-27T17:00:00Z"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.668, 20.292] },
+      "properties": {
+        "asset_id": "HOSP_PARADIP_01",
+        "name": "Paradip Port Trust Super-Specialty Hospital",
+        "asset_type": "hospital",
+        "elevation_m": 2.4,
+        "criticality": "TIER_1",
+        "service_capacity": 250,
+        "downstream_dependencies": ["ICU_TRAUMA_WING", "OXYGEN_GENERATION_PLANT"],
+        "district": "Jagatsinghpur",
+        "coastal_sector": "Paradip_Odisha",
+        "osm_id": "node/109283741"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.612, 20.315] },
+      "properties": {
+        "asset_id": "HOSP_PARADIP_02",
+        "name": "Biju Memorial Sub-Divisional Hospital (Kujang)",
+        "asset_type": "hospital",
+        "elevation_m": 3.8,
+        "criticality": "TIER_2",
+        "service_capacity": 120,
+        "downstream_dependencies": ["TRIAGE_FIELD_SHELTER"],
+        "district": "Jagatsinghpur",
+        "coastal_sector": "Paradip_Odisha",
+        "osm_id": "node/109283742"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.654, 20.288] },
+      "properties": {
+        "asset_id": "SUBST_PARADIP_01",
+        "name": "Paradip 220/132kV OPTCL Primary Grid Substation",
+        "asset_type": "substation",
+        "elevation_m": 1.9,
+        "criticality": "TIER_1",
+        "service_capacity": 300,
+        "downstream_dependencies": ["HOSP_PARADIP_01", "PUMP_PARADIP_01", "TELECOM_TOWER_GRID"],
+        "district": "Jagatsinghpur",
+        "coastal_sector": "Paradip_Odisha",
+        "osm_id": "way/298374102"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.680, 20.275] },
+      "properties": {
+        "asset_id": "SUBST_PARADIP_02",
+        "name": "IFFCO Marine Chemical Feeder Substation",
+        "asset_type": "substation",
+        "elevation_m": 1.6,
+        "criticality": "TIER_2",
+        "service_capacity": 100,
+        "downstream_dependencies": ["CHEMICAL_NEUTRALIZATION_SYSTEM"],
+        "district": "Jagatsinghpur",
+        "coastal_sector": "Paradip_Odisha",
+        "osm_id": "way/298374103"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.620, 20.295] },
+      "properties": {
+        "asset_id": "HWY_PARADIP_01",
+        "name": "NH-53 Paradip-Cuttack Express Arterial Corridor",
+        "asset_type": "highway",
+        "elevation_m": 2.2,
+        "criticality": "TIER_1",
+        "service_capacity": 15000,
+        "downstream_dependencies": ["EVAC_BUS_CONVOY_ALPHA", "AMBULANCE_DISPATCH_ROUTE"],
+        "district": "Jagatsinghpur",
+        "coastal_sector": "Paradip_Odisha",
+        "osm_id": "way/498273610"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.560, 20.320] },
+      "properties": {
+        "asset_id": "HWY_PARADIP_02",
+        "name": "SH-12 Kujang Inland High-Ridge Bypass",
+        "asset_type": "highway",
+        "elevation_m": 4.6,
+        "criticality": "TIER_2",
+        "service_capacity": 8000,
+        "downstream_dependencies": ["SECONDARY_RELIEF_CONVOY"],
+        "district": "Jagatsinghpur",
+        "coastal_sector": "Paradip_Odisha",
+        "osm_id": "way/498273611"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.650, 20.301] },
+      "properties": {
+        "asset_id": "SHELTER_PARADIP_01",
+        "name": "Paradip Port Elevated Cyclone Relief Shelter",
+        "asset_type": "shelter",
+        "elevation_m": 4.2,
+        "criticality": "TIER_1",
+        "service_capacity": 2000,
+        "downstream_dependencies": ["LOCAL_CIVIL_EVACUEES"],
+        "district": "Jagatsinghpur",
+        "coastal_sector": "Paradip_Odisha",
+        "osm_id": "node/109283745"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.690, 20.272] },
+      "properties": {
+        "asset_id": "PUMP_PARADIP_01",
+        "name": "Mahanadi Estuary Storm Water Drainage Pump Complex",
+        "asset_type": "pump_station",
+        "elevation_m": 1.4,
+        "criticality": "TIER_1",
+        "service_capacity": 50000,
+        "downstream_dependencies": ["MUNICIPAL_DRAINAGE_ZONE_4"],
+        "district": "Jagatsinghpur",
+        "coastal_sector": "Paradip_Odisha",
+        "osm_id": "node/109283746"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.975, 20.805] },
+      "properties": {
+        "asset_id": "HOSP_DHAMRA_01",
+        "name": "Dhamra Port Emergency Healthcare Center",
+        "asset_type": "hospital",
+        "elevation_m": 2.1,
+        "criticality": "TIER_1",
+        "service_capacity": 100,
+        "downstream_dependencies": ["PORT_CASUALTY_STATION"],
+        "district": "Bhadrak",
+        "coastal_sector": "Dhamra_Odisha",
+        "osm_id": "node/109283750"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.960, 20.795] },
+      "properties": {
+        "asset_id": "SUBST_DHAMRA_01",
+        "name": "Dhamra 132/33kV Maritime Feeder Substation",
+        "asset_type": "substation",
+        "elevation_m": 1.8,
+        "criticality": "TIER_1",
+        "service_capacity": 120,
+        "downstream_dependencies": ["HOSP_DHAMRA_01", "PORT_CRANE_NETWORK"],
+        "district": "Bhadrak",
+        "coastal_sector": "Dhamra_Odisha",
+        "osm_id": "way/298374110"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [86.910, 20.810] },
+      "properties": {
+        "asset_id": "HWY_DHAMRA_01",
+        "name": "Jamujhadi-Dhamra Port Access Highway",
+        "asset_type": "highway",
+        "elevation_m": 2.4,
+        "criticality": "TIER_1",
+        "service_capacity": 6000,
+        "downstream_dependencies": ["HEAVY_RELIEF_CORRIDOR"],
+        "district": "Bhadrak",
+        "coastal_sector": "Dhamra_Odisha",
+        "osm_id": "way/498273620"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [87.525, 21.628] },
+      "properties": {
+        "asset_id": "HOSP_DIGHA_01",
+        "name": "Digha State General Hospital",
+        "asset_type": "hospital",
+        "elevation_m": 2.6,
+        "criticality": "TIER_1",
+        "service_capacity": 180,
+        "downstream_dependencies": ["COASTAL_COMMUNITY_ICU"],
+        "district": "Purba Medinipur",
+        "coastal_sector": "Digha_WestBengal",
+        "osm_id": "node/109283760"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [87.560, 21.640] },
+      "properties": {
+        "asset_id": "SUBST_DIGHA_01",
+        "name": "Shankarpur Coastal 33kV Feeder Substation",
+        "asset_type": "substation",
+        "elevation_m": 1.7,
+        "criticality": "TIER_2",
+        "service_capacity": 80,
+        "downstream_dependencies": ["SHANKARPUR_COLD_STORAGE", "HOSP_DIGHA_01"],
+        "district": "Purba Medinipur",
+        "coastal_sector": "Digha_WestBengal",
+        "osm_id": "way/298374120"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [87.510, 21.635] },
+      "properties": {
+        "asset_id": "HWY_DIGHA_01",
+        "name": "NH-116B Digha Coastal Connector Highway",
+        "asset_type": "highway",
+        "elevation_m": 2.3,
+        "criticality": "TIER_1",
+        "service_capacity": 12000,
+        "downstream_dependencies": ["TOURIST_CIVIL_EVACUATION_FLEET"],
+        "district": "Purba Medinipur",
+        "coastal_sector": "Digha_WestBengal",
+        "osm_id": "way/498273630"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [87.480, 21.670] },
+      "properties": {
+        "asset_id": "HWY_DIGHA_02",
+        "name": "Ramnagar Elevated Inland Bypass",
+        "asset_type": "highway",
+        "elevation_m": 5.8,
+        "criticality": "TIER_2",
+        "service_capacity": 9000,
+        "downstream_dependencies": ["INLAND_KOLKATA_SAFE_ROUTE"],
+        "district": "Purba Medinipur",
+        "coastal_sector": "Digha_WestBengal",
+        "osm_id": "way/498273631"
+      }
+    }
+  ]
+}
